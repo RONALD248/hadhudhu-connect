@@ -14,16 +14,341 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          head_user_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          head_user_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          head_user_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      member_departments: {
+        Row: {
+          department_id: string
+          id: string
+          joined_at: string | null
+          user_id: string
+        }
+        Insert: {
+          department_id: string
+          id?: string
+          joined_at?: string | null
+          user_id: string
+        }
+        Update: {
+          department_id?: string
+          id?: string
+          joined_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_categories: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          start_date: string | null
+          target_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          start_date?: string | null
+          target_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          start_date?: string | null
+          target_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          payment_date: string
+          payment_method: string
+          receipt_url: string | null
+          recorded_by: string | null
+          reference_number: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          payment_date?: string
+          payment_method?: string
+          receipt_url?: string | null
+          recorded_by?: string | null
+          reference_number?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          payment_date?: string
+          payment_method?: string
+          receipt_url?: string | null
+          recorded_by?: string | null
+          reference_number?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "payment_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pledges: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          fulfilled_amount: number | null
+          id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          fulfilled_amount?: number | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          fulfilled_amount?: number | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pledges_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "payment_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          baptism_date: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          employer: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          is_active: boolean | null
+          last_name: string
+          marital_status: string | null
+          membership_number: string | null
+          occupation: string | null
+          phone: string | null
+          photo_url: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          baptism_date?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employer?: string | null
+          first_name: string
+          gender?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_name: string
+          marital_status?: string | null
+          membership_number?: string | null
+          occupation?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          baptism_date?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employer?: string | null
+          first_name?: string
+          gender?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_name?: string
+          marital_status?: string | null
+          membership_number?: string | null
+          occupation?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "treasurer" | "secretary" | "pastor" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +475,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "treasurer", "secretary", "pastor", "member"],
+    },
   },
 } as const
