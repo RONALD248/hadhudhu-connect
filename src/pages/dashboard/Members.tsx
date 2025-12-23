@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -33,12 +33,12 @@ import {
   Filter, 
   Download, 
   MoreHorizontal,
-  User,
   Phone,
   Mail,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -48,44 +48,43 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useProfiles } from '@/hooks/useProfiles';
+import { useDepartments } from '@/hooks/useDepartments';
 
 export default function Members() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
+  
+  const { data: profiles, isLoading: profilesLoading } = useProfiles();
+  const { data: departments } = useDepartments();
 
-  const members = [
-    { id: 1, name: 'John Mwangi', membershipNo: 'HDH-2020-001', phone: '+254 712 345 678', email: 'john@email.com', status: 'baptized', department: 'Youth' },
-    { id: 2, name: 'Mary Wanjiku', membershipNo: 'HDH-2019-045', phone: '+254 722 456 789', email: 'mary@email.com', status: 'baptized', department: 'Women' },
-    { id: 3, name: 'Peter Ochieng', membershipNo: 'HDH-2021-012', phone: '+254 733 567 890', email: 'peter@email.com', status: 'baptized', department: 'Men' },
-    { id: 4, name: 'Grace Auma', membershipNo: 'HDH-2022-078', phone: '+254 744 678 901', email: 'grace@email.com', status: 'visitor', department: 'Choir' },
-    { id: 5, name: 'Samuel Kiprop', membershipNo: 'HDH-2018-023', phone: '+254 755 789 012', email: 'samuel@email.com', status: 'baptized', department: 'Deacons' },
-    { id: 6, name: 'Ruth Nyambura', membershipNo: 'HDH-2023-101', phone: '+254 766 890 123', email: 'ruth@email.com', status: 'child', department: 'Children' },
-    { id: 7, name: 'David Kamau', membershipNo: 'HDH-2017-015', phone: '+254 777 901 234', email: 'david@email.com', status: 'transferred', department: 'Elders' },
-  ];
+  const filteredMembers = profiles?.filter(member =>
+    `${member.first_name} ${member.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.membership_number?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
-  const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.membershipNo.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      baptized: 'bg-success/10 text-success hover:bg-success/20',
-      visitor: 'bg-warning/10 text-warning hover:bg-warning/20',
-      child: 'bg-primary/10 text-primary hover:bg-primary/20',
-      transferred: 'bg-muted text-muted-foreground hover:bg-muted',
-    };
-    return styles[status] || styles.baptized;
+  const getStatusBadge = (baptismDate: string | null) => {
+    if (baptismDate) {
+      return { status: 'baptized', style: 'bg-success/10 text-success hover:bg-success/20' };
+    }
+    return { status: 'visitor', style: 'bg-warning/10 text-warning hover:bg-warning/20' };
   };
 
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
-      title: 'Member added',
-      description: 'New member has been successfully added to the system.',
+      title: 'Info',
+      description: 'To add new members, they need to register through the registration page.',
     });
     setIsAddDialogOpen(false);
+  };
+
+  const stats = {
+    total: profiles?.length || 0,
+    baptized: profiles?.filter(p => p.baptism_date).length || 0,
+    visitors: profiles?.filter(p => !p.baptism_date).length || 0,
+    active: profiles?.filter(p => p.is_active).length || 0,
   };
 
   return (
@@ -108,7 +107,7 @@ export default function Members() {
             <DialogHeader>
               <DialogTitle>Add New Member</DialogTitle>
               <DialogDescription>
-                Enter the member's information below
+                New members can be added by having them register through the registration page, or invite them via email.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddMember} className="space-y-4 mt-4">
@@ -166,11 +165,11 @@ export default function Members() {
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="youth">Youth</SelectItem>
-                    <SelectItem value="women">Women</SelectItem>
-                    <SelectItem value="men">Men</SelectItem>
-                    <SelectItem value="choir">Choir</SelectItem>
-                    <SelectItem value="children">Children</SelectItem>
+                    {departments?.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -188,10 +187,10 @@ export default function Members() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          { label: 'Total Members', value: '248', color: 'text-primary' },
-          { label: 'Baptized', value: '195', color: 'text-success' },
-          { label: 'Visitors', value: '32', color: 'text-warning' },
-          { label: 'Transferred', value: '12', color: 'text-muted-foreground' },
+          { label: 'Total Members', value: stats.total.toString(), color: 'text-primary' },
+          { label: 'Baptized', value: stats.baptized.toString(), color: 'text-success' },
+          { label: 'Visitors', value: stats.visitors.toString(), color: 'text-warning' },
+          { label: 'Active', value: stats.active.toString(), color: 'text-muted-foreground' },
         ].map((stat, index) => (
           <Card key={index}>
             <CardContent className="p-4">
@@ -232,76 +231,94 @@ export default function Members() {
       {/* Members Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Membership No.</TableHead>
-                <TableHead className="hidden md:table-cell">Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Department</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMembers.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                          {member.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{member.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{member.membershipNo}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        {member.phone}
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        {member.email}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={getStatusBadge(member.status)}>
-                      {member.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">{member.department}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {profilesLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredMembers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <p className="text-muted-foreground">No members found</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Members will appear here when they register.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Member</TableHead>
+                  <TableHead>Membership No.</TableHead>
+                  <TableHead className="hidden md:table-cell">Contact</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Gender</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredMembers.map((member) => {
+                  const { status, style } = getStatusBadge(member.baptism_date);
+                  return (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                              {member.first_name[0]}{member.last_name[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{member.first_name} {member.last_name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {member.membership_number || '-'}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="space-y-1">
+                          {member.phone && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              {member.phone}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={style}>
+                          {status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell capitalize">
+                        {member.gender || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

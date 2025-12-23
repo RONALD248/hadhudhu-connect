@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -30,47 +30,50 @@ import {
 import { 
   Search, 
   Plus, 
-  Filter, 
   Download,
   Wallet,
   Calendar,
   CreditCard,
   Banknote,
   Smartphone,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePayments, usePaymentCategories, useCreatePayment } from '@/hooks/usePayments';
+import { useProfiles } from '@/hooks/useProfiles';
 
 export default function Contributions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [notes, setNotes] = useState('');
+  
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const payments = [
-    { id: 1, member: 'John Mwangi', category: 'Tithe', amount: 15000, method: 'mpesa', ref: 'TRX001234', date: '2024-01-15', status: 'completed' },
-    { id: 2, member: 'Mary Wanjiku', category: 'Offering', amount: 2500, method: 'cash', ref: 'RCP00456', date: '2024-01-15', status: 'completed' },
-    { id: 3, member: 'Peter Ochieng', category: 'Building Fund', amount: 50000, method: 'bank', ref: 'BNK00789', date: '2024-01-14', status: 'completed' },
-    { id: 4, member: 'Grace Auma', category: 'Welfare', amount: 1000, method: 'mpesa', ref: 'TRX001235', date: '2024-01-14', status: 'completed' },
-    { id: 5, member: 'Samuel Kiprop', category: 'Tithe', amount: 8000, method: 'cash', ref: 'RCP00457', date: '2024-01-13', status: 'completed' },
-    { id: 6, member: 'Ruth Nyambura', category: 'Youth Fund', amount: 500, method: 'mpesa', ref: 'TRX001236', date: '2024-01-13', status: 'completed' },
-    { id: 7, member: 'David Kamau', category: 'Camp Meeting', amount: 5000, method: 'cheque', ref: 'CHQ00123', date: '2024-01-12', status: 'pending' },
-  ];
+  const { data: payments, isLoading: paymentsLoading } = usePayments();
+  const { data: categories } = usePaymentCategories();
+  const { data: profiles } = useProfiles();
+  const createPayment = useCreatePayment();
 
-  const categories = ['Tithe', 'Offering', 'Building Fund', 'Welfare', 'Youth Fund', 'Camp Meeting', 'Sabbath School'];
-
-  const filteredPayments = payments.filter(payment =>
-    payment.member.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.ref.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPayments = payments?.filter(payment => {
+    const categoryName = payment.payment_categories?.name || '';
+    return categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.reference_number?.toLowerCase().includes(searchQuery.toLowerCase());
+  }) || [];
 
   const getMethodIcon = (method: string) => {
     switch (method) {
       case 'mpesa': return <Smartphone className="h-4 w-4 text-success" />;
       case 'cash': return <Banknote className="h-4 w-4 text-warning" />;
-      case 'bank': return <CreditCard className="h-4 w-4 text-primary" />;
+      case 'bank_transfer': return <CreditCard className="h-4 w-4 text-primary" />;
       case 'cheque': return <FileText className="h-4 w-4 text-muted-foreground" />;
       default: return <Wallet className="h-4 w-4" />;
     }
@@ -84,16 +87,50 @@ export default function Contributions() {
     }).format(amount);
   };
 
-  const handleAddPayment = (e: React.FormEvent) => {
+  const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Payment recorded',
-      description: 'The contribution has been successfully recorded.',
-    });
-    setIsAddDialogOpen(false);
+    
+    if (!selectedMember || !selectedCategory || !amount || !paymentMethod) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please fill in all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await createPayment.mutateAsync({
+        user_id: selectedMember,
+        category_id: selectedCategory,
+        amount: parseFloat(amount),
+        payment_method: paymentMethod,
+        payment_date: paymentDate,
+        reference_number: referenceNumber || null,
+        description: notes || null,
+        receipt_url: null,
+        recorded_by: user?.id || null,
+      });
+      
+      setIsAddDialogOpen(false);
+      // Reset form
+      setSelectedMember('');
+      setSelectedCategory('');
+      setAmount('');
+      setPaymentMethod('');
+      setReferenceNumber('');
+      setNotes('');
+    } catch (error) {
+      // Error is handled in the mutation
+    }
   };
 
   const canRecordPayments = user?.role === 'super_admin' || user?.role === 'treasurer';
+
+  // Calculate stats
+  const today = new Date().toISOString().split('T')[0];
+  const todayTotal = payments?.filter(p => p.payment_date === today).reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+  const totalAmount = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -121,29 +158,30 @@ export default function Contributions() {
               </DialogHeader>
               <form onSubmit={handleAddPayment} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="member">Member</Label>
-                  <Select>
+                  <Label htmlFor="member">Member *</Label>
+                  <Select value={selectedMember} onValueChange={setSelectedMember}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select member" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">John Mwangi</SelectItem>
-                      <SelectItem value="2">Mary Wanjiku</SelectItem>
-                      <SelectItem value="3">Peter Ochieng</SelectItem>
-                      <SelectItem value="4">Grace Auma</SelectItem>
+                      {profiles?.map((profile) => (
+                        <SelectItem key={profile.user_id} value={profile.user_id}>
+                          {profile.first_name} {profile.last_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select>
+                  <Label htmlFor="category">Category *</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat.toLowerCase().replace(' ', '_')}>
-                          {cat}
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -151,41 +189,73 @@ export default function Contributions() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="amount">Amount (KES)</Label>
-                    <Input id="amount" type="number" placeholder="0.00" required />
+                    <Label htmlFor="amount">Amount (KES) *</Label>
+                    <Input 
+                      id="amount" 
+                      type="number" 
+                      placeholder="0.00" 
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
-                    <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
+                    <Label htmlFor="date">Date *</Label>
+                    <Input 
+                      id="date" 
+                      type="date" 
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                      required 
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="method">Payment Method</Label>
-                  <Select>
+                  <Label htmlFor="method">Payment Method *</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select method" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="cash">Cash</SelectItem>
                       <SelectItem value="mpesa">M-Pesa</SelectItem>
-                      <SelectItem value="bank">Bank Transfer</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                       <SelectItem value="cheque">Cheque</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reference">Reference Number</Label>
-                  <Input id="reference" placeholder="Transaction or receipt number" />
+                  <Input 
+                    id="reference" 
+                    placeholder="Transaction or receipt number" 
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes (Optional)</Label>
-                  <Input id="notes" placeholder="Additional notes..." />
+                  <Input 
+                    id="notes" 
+                    placeholder="Additional notes..." 
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                   <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit">Record Payment</Button>
+                  <Button type="submit" disabled={createPayment.isPending}>
+                    {createPayment.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Recording...
+                      </>
+                    ) : (
+                      'Record Payment'
+                    )}
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -196,10 +266,10 @@ export default function Contributions() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          { label: 'Today\'s Collections', value: 'KES 78,500', icon: Wallet, color: 'text-success' },
-          { label: 'This Week', value: 'KES 245,000', icon: Calendar, color: 'text-primary' },
-          { label: 'This Month', value: 'KES 485,200', icon: CreditCard, color: 'text-secondary' },
-          { label: 'Pending Cheques', value: 'KES 25,000', icon: FileText, color: 'text-warning' },
+          { label: "Today's Collections", value: formatAmount(todayTotal), icon: Wallet, color: 'text-success' },
+          { label: 'Total Payments', value: (payments?.length || 0).toString(), icon: Calendar, color: 'text-primary' },
+          { label: 'Total Amount', value: formatAmount(totalAmount), icon: CreditCard, color: 'text-secondary' },
+          { label: 'Categories', value: (categories?.length || 0).toString(), icon: FileText, color: 'text-warning' },
         ].map((stat, index) => (
           <Card key={index}>
             <CardContent className="p-4">
@@ -224,7 +294,7 @@ export default function Contributions() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by member, category, or reference..."
+                placeholder="Search by category or reference..."
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -237,9 +307,9 @@ export default function Contributions() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat.toLowerCase().replace(' ', '_')}>
-                      {cat}
+                  {categories?.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -256,51 +326,50 @@ export default function Contributions() {
       {/* Payments Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead className="hidden md:table-cell">Method</TableHead>
-                <TableHead className="hidden lg:table-cell">Reference</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPayments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">{payment.member}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{payment.category}</Badge>
-                  </TableCell>
-                  <TableCell className="font-semibold">{formatAmount(payment.amount)}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="flex items-center gap-2">
-                      {getMethodIcon(payment.method)}
-                      <span className="capitalize">{payment.method}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell font-mono text-sm text-muted-foreground">
-                    {payment.ref}
-                  </TableCell>
-                  <TableCell>{payment.date}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="secondary" 
-                      className={payment.status === 'completed' 
-                        ? 'bg-success/10 text-success' 
-                        : 'bg-warning/10 text-warning'
-                      }
-                    >
-                      {payment.status}
-                    </Badge>
-                  </TableCell>
+          {paymentsLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredPayments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <p className="text-muted-foreground">No payments found</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {canRecordPayments ? 'Click "Record Payment" to add the first contribution.' : 'No contributions have been recorded yet.'}
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead className="hidden md:table-cell">Method</TableHead>
+                  <TableHead className="hidden lg:table-cell">Reference</TableHead>
+                  <TableHead>Date</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredPayments.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>
+                      <Badge variant="outline">{payment.payment_categories?.name || 'Unknown'}</Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold">{formatAmount(Number(payment.amount))}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="flex items-center gap-2">
+                        {getMethodIcon(payment.payment_method)}
+                        <span className="capitalize">{payment.payment_method.replace('_', ' ')}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell font-mono text-sm text-muted-foreground">
+                      {payment.reference_number || '-'}
+                    </TableCell>
+                    <TableCell>{payment.payment_date}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
