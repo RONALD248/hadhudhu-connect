@@ -100,7 +100,6 @@ export default function Settings() {
               {/* Avatar */}
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={user?.avatar} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl">
                     {getInitials()}
                   </AvatarFallback>

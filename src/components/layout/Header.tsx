@@ -75,7 +75,6 @@ export function Header({ onMenuClick }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatar} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                   {user && getInitials(user.firstName, user.lastName)}
                 </AvatarFallback>

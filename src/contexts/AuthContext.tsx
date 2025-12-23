@@ -1,14 +1,40 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '@/types';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types';
+
+interface Profile {
+  id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  membership_number: string | null;
+  is_active: boolean;
+}
+
+interface AuthUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: UserRole;
+  membershipNumber?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
-  updateUser: (data: Partial<User>) => void;
+  logout: () => Promise<void>;
+  updateUser: (data: Partial<AuthUser>) => void;
 }
 
 interface RegisterData {
@@ -17,131 +43,156 @@ interface RegisterData {
   firstName: string;
   lastName: string;
   phone?: string;
-  role?: UserRole;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Demo users for testing different roles
-const demoUsers: Record<string, User> = {
-  'admin@hadhudhu.org': {
-    id: '1',
-    email: 'admin@hadhudhu.org',
-    firstName: 'Admin',
-    lastName: 'User',
-    role: 'super_admin',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  'treasurer@hadhudhu.org': {
-    id: '2',
-    email: 'treasurer@hadhudhu.org',
-    firstName: 'John',
-    lastName: 'Treasurer',
-    role: 'treasurer',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  'secretary@hadhudhu.org': {
-    id: '3',
-    email: 'secretary@hadhudhu.org',
-    firstName: 'Mary',
-    lastName: 'Secretary',
-    role: 'secretary',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  'pastor@hadhudhu.org': {
-    id: '4',
-    email: 'pastor@hadhudhu.org',
-    firstName: 'Pastor',
-    lastName: 'James',
-    role: 'pastor',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  'member@hadhudhu.org': {
-    id: '5',
-    email: 'member@hadhudhu.org',
-    firstName: 'Jane',
-    lastName: 'Member',
-    role: 'member',
-    membershipNumber: 'HDH-2024-001',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for stored session
-    const storedUser = localStorage.getItem('churchUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      // Fetch profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return null;
+      }
+
+      // Fetch role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (roleError) {
+        console.error('Error fetching role:', roleError);
+      }
+
+      return {
+        profile: profile as Profile,
+        role: (roleData?.role as UserRole) || 'member',
+      };
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+      return null;
     }
-    setIsLoading(false);
+  };
+
+  const buildAuthUser = (
+    supabaseUser: User,
+    profile: Profile | null,
+    role: UserRole
+  ): AuthUser => ({
+    id: supabaseUser.id,
+    email: supabaseUser.email || '',
+    firstName: profile?.first_name || supabaseUser.user_metadata?.first_name || 'User',
+    lastName: profile?.last_name || supabaseUser.user_metadata?.last_name || '',
+    phone: profile?.phone || undefined,
+    role: role,
+    membershipNumber: profile?.membership_number || undefined,
+    isActive: profile?.is_active ?? true,
+    createdAt: new Date(supabaseUser.created_at),
+    updatedAt: new Date(),
+  });
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Defer Supabase calls with setTimeout to prevent deadlock
+          setTimeout(async () => {
+            const userData = await fetchUserProfile(session.user.id);
+            if (userData) {
+              setUser(buildAuthUser(session.user, userData.profile, userData.role));
+            } else {
+              // Fallback if profile fetch fails
+              setUser(buildAuthUser(session.user, null, 'member'));
+            }
+            setIsLoading(false);
+          }, 0);
+        } else {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then((userData) => {
+          if (userData) {
+            setUser(buildAuthUser(session.user, userData.profile, userData.role));
+          } else {
+            setUser(buildAuthUser(session.user, null, 'member'));
+          }
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const demoUser = demoUsers[email.toLowerCase()];
-      if (demoUser && password === 'password123') {
-        setUser(demoUser);
-        localStorage.setItem('churchUser', JSON.stringify(demoUser));
-      } else {
-        throw new Error('Invalid credentials. Try demo accounts with password: password123');
-      }
-    } finally {
-      setIsLoading(false);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
   };
 
   const register = async (data: RegisterData) => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone,
-        role: data.role || 'member',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('churchUser', JSON.stringify(newUser));
-    } finally {
-      setIsLoading(false);
+    const redirectUrl = `${window.location.origin}/`;
+
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          first_name: data.firstName,
+          last_name: data.lastName,
+          phone: data.phone,
+        },
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new Error(error.message);
+    }
     setUser(null);
-    localStorage.removeItem('churchUser');
+    setSession(null);
   };
 
-  const updateUser = (data: Partial<User>) => {
+  const updateUser = (data: Partial<AuthUser>) => {
     if (user) {
-      const updatedUser = { ...user, ...data, updatedAt: new Date() };
-      setUser(updatedUser);
-      localStorage.setItem('churchUser', JSON.stringify(updatedUser));
+      setUser({ ...user, ...data, updatedAt: new Date() });
     }
   };
 
@@ -149,8 +200,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        session,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated: !!session,
         login,
         register,
         logout,
