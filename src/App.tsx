@@ -19,6 +19,7 @@ import Members from "./pages/dashboard/Members";
 import Contributions from "./pages/dashboard/Contributions";
 import Reports from "./pages/dashboard/Reports";
 import Settings from "./pages/dashboard/Settings";
+import UserManagement from "./pages/dashboard/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -50,7 +51,7 @@ const App = () => (
               <Route path="departments" element={<Members />} />
               <Route path="secretariat" element={<Reports />} />
               <Route path="events" element={<Reports />} />
-              <Route path="users" element={<Members />} />
+              <Route path="users" element={<UserManagement />} />
               <Route path="profile" element={<Settings />} />
             </Route>
 

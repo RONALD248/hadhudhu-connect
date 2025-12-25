@@ -45,16 +45,27 @@ export function useCreateProfile() {
 
   return useMutation({
     mutationFn: async (profileData: {
-      user_id: string;
+      user_id?: string;
       first_name: string;
       last_name: string;
       phone?: string | null;
       gender?: string | null;
       address?: string | null;
+      marital_status?: string | null;
+      occupation?: string | null;
+      baptism_date?: string | null;
+      membership_number?: string | null;
+      is_active?: boolean;
     }) => {
+      // Generate a placeholder user_id if not provided (for secretary-registered members)
+      const dataToInsert = {
+        ...profileData,
+        user_id: profileData.user_id || crypto.randomUUID(),
+      };
+
       const { data, error } = await supabase
         .from('profiles')
-        .insert(profileData)
+        .insert(dataToInsert)
         .select()
         .single();
 
@@ -64,8 +75,8 @@ export function useCreateProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       toast({
-        title: 'Success',
-        description: 'Profile created successfully.',
+        title: 'Member registered',
+        description: 'New member has been added successfully.',
       });
     },
     onError: (error: Error) => {
