@@ -39,17 +39,6 @@ export default function Login() {
     }
   };
 
-  const demoAccounts = [
-    { email: 'admin@hadhudhu.org', label: 'Admin' },
-    { email: 'treasurer@hadhudhu.org', label: 'Treasurer' },
-    { email: 'secretary@hadhudhu.org', label: 'Secretary' },
-    { email: 'member@hadhudhu.org', label: 'Member' },
-  ];
-
-  const fillDemoAccount = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('password123');
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
@@ -137,33 +126,6 @@ export default function Login() {
                 )}
               </Button>
             </form>
-
-            {/* Demo Accounts */}
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Demo Accounts</span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {demoAccounts.map((account) => (
-                  <Button
-                    key={account.email}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fillDemoAccount(account.email)}
-                    disabled={isLoading}
-                  >
-                    {account.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
