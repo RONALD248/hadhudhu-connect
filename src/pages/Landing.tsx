@@ -47,10 +47,10 @@ export default function Landing() {
   ];
 
   const stats = [
-    { value: '500+', label: 'Members Managed' },
-    { value: 'KES 5M+', label: 'Contributions Tracked' },
-    { value: '100%', label: 'Data Accuracy' },
-    { value: '24/7', label: 'System Availability' },
+    { value: 'Secure', label: 'Data Protection' },
+    { value: 'Real-time', label: 'Sync & Updates' },
+    { value: '100%', label: 'Transparency' },
+    { value: '24/7', label: 'System Access' },
   ];
 
   return (
@@ -172,38 +172,35 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Demo Accounts Section */}
+      {/* Roles Section */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground">Try Demo Accounts</h2>
+              <h2 className="text-3xl font-bold text-foreground">Role-Based Access</h2>
               <p className="mt-4 text-muted-foreground">
-                Experience the system with different role perspectives
+                Each role has specific permissions tailored to their responsibilities
               </p>
             </div>
 
             <div className="bg-card rounded-xl border border-border p-6 shadow-card">
               <div className="grid gap-4">
                 {[
-                  { email: 'admin@hadhudhu.org', role: 'Super Admin' },
-                  { email: 'treasurer@hadhudhu.org', role: 'Treasurer' },
-                  { email: 'secretary@hadhudhu.org', role: 'Secretary' },
-                  { email: 'pastor@hadhudhu.org', role: 'Pastor' },
-                  { email: 'member@hadhudhu.org', role: 'Member' },
-                ].map((account, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  { role: 'Administrator', description: 'Full system access, user management, and configuration' },
+                  { role: 'Treasurer', description: 'Financial records, contributions, and payment tracking' },
+                  { role: 'Secretary', description: 'Member registration, records management, and reports' },
+                  { role: 'Pastor', description: 'Member oversight, spiritual records, and announcements' },
+                  { role: 'Member', description: 'Personal contribution history and profile management' },
+                ].map((item, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="h-5 w-5 text-success" />
-                      <span className="font-medium">{account.email}</span>
+                      <span className="font-semibold text-foreground">{item.role}</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{account.role}</span>
+                    <span className="text-sm text-muted-foreground">{item.description}</span>
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-center text-sm text-muted-foreground">
-                Password for all demo accounts: <code className="bg-muted px-2 py-0.5 rounded">password123</code>
-              </p>
             </div>
           </div>
         </div>
@@ -238,7 +235,7 @@ export default function Landing() {
               <span className="font-semibold text-foreground">Hadhudhu SDA Church</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 Hadhudhu SDA Church, Uranga District. All rights reserved.
+              © {new Date().getFullYear()} Hadhudhu SDA Church, Uranga District. All rights reserved.
             </p>
           </div>
         </div>
