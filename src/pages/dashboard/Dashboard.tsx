@@ -9,8 +9,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Plus,
-  FileText,
-  Clock
+  FileText
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -20,44 +19,36 @@ export default function Dashboard() {
   const stats = [
     {
       title: 'Total Members',
-      value: '248',
-      change: '+12',
-      changeType: 'positive',
+      value: '--',
+      change: 'View',
+      changeType: 'neutral',
       icon: Users,
       href: '/dashboard/members',
     },
     {
       title: 'Monthly Contributions',
-      value: 'KES 485,200',
-      change: '+8.2%',
-      changeType: 'positive',
+      value: '--',
+      change: 'View',
+      changeType: 'neutral',
       icon: Wallet,
       href: '/dashboard/contributions',
     },
     {
       title: 'YTD Collections',
-      value: 'KES 4.2M',
-      change: '+15%',
-      changeType: 'positive',
+      value: '--',
+      change: 'View',
+      changeType: 'neutral',
       icon: TrendingUp,
       href: '/dashboard/reports',
     },
     {
       title: 'Pending Pledges',
-      value: '34',
-      change: '-5',
-      changeType: 'negative',
+      value: '--',
+      change: 'View',
+      changeType: 'neutral',
       icon: Calendar,
       href: '/dashboard/contributions',
     },
-  ];
-
-  const recentPayments = [
-    { id: 1, member: 'John Mwangi', category: 'Tithe', amount: 'KES 15,000', date: '2024-01-15' },
-    { id: 2, member: 'Mary Wanjiku', category: 'Offering', amount: 'KES 2,500', date: '2024-01-15' },
-    { id: 3, member: 'Peter Ochieng', category: 'Building Fund', amount: 'KES 50,000', date: '2024-01-14' },
-    { id: 4, member: 'Grace Auma', category: 'Welfare', amount: 'KES 1,000', date: '2024-01-14' },
-    { id: 5, member: 'Samuel Kiprop', category: 'Tithe', amount: 'KES 8,000', date: '2024-01-13' },
   ];
 
   const quickActions = [
@@ -112,13 +103,13 @@ export default function Dashboard() {
                     <stat.icon className="h-6 w-6 text-primary" />
                   </div>
                   <div className={`flex items-center gap-1 text-sm font-medium ${
-                    stat.changeType === 'positive' ? 'text-success' : 'text-destructive'
+                    stat.changeType === 'positive' ? 'text-success' : stat.changeType === 'negative' ? 'text-destructive' : 'text-primary'
                   }`}>
                     {stat.changeType === 'positive' ? (
                       <ArrowUpRight className="h-4 w-4" />
-                    ) : (
+                    ) : stat.changeType === 'negative' ? (
                       <ArrowDownRight className="h-4 w-4" />
-                    )}
+                    ) : null}
                     {stat.change}
                   </div>
                 </div>
@@ -148,69 +139,45 @@ export default function Dashboard() {
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentPayments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <Wallet className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">{payment.member}</p>
-                      <p className="text-sm text-muted-foreground">{payment.category}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-foreground">{payment.amount}</p>
-                    <p className="text-xs text-muted-foreground">{payment.date}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <Wallet className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-muted-foreground">No contributions recorded yet</p>
+              <Link to="/dashboard/contributions" className="mt-4">
+                <Button size="sm">Record First Contribution</Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
 
-        {/* Upcoming Events / Activity */}
+        {/* Quick Stats */}
         <Card className="animate-slide-up" style={{ animationDelay: '0.5s' }}>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Upcoming Events</CardTitle>
-              <CardDescription>Church calendar</CardDescription>
-            </div>
-            <Link to="/dashboard/events">
-              <Button variant="ghost" size="sm">
-                View All
-              </Button>
-            </Link>
+          <CardHeader>
+            <CardTitle className="text-lg">Quick Links</CardTitle>
+            <CardDescription>Navigate to key areas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
-                { title: 'Sabbath Service', date: 'Saturday, Jan 20', time: '9:00 AM' },
-                { title: 'Prayer Meeting', date: 'Wednesday, Jan 17', time: '6:00 PM' },
-                { title: 'Youth Rally', date: 'Saturday, Jan 27', time: '2:00 PM' },
-                { title: 'Board Meeting', date: 'Sunday, Jan 28', time: '10:00 AM' },
-                { title: 'Camp Meeting', date: 'Feb 15-18', time: 'All Day' },
-              ].map((event, index) => (
-                <div
+                { title: 'Member Registration', description: 'Add new church members', href: '/dashboard/members', icon: Users },
+                { title: 'Payment Recording', description: 'Record contributions', href: '/dashboard/contributions', icon: Wallet },
+                { title: 'Generate Reports', description: 'Export and view reports', href: '/dashboard/reports', icon: FileText },
+                { title: 'User Management', description: 'Manage system users', href: '/dashboard/users', icon: Users },
+              ].map((item, index) => (
+                <Link
                   key={index}
+                  to={item.href}
                   className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                 >
-                  <div className="flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                    <Calendar className="h-5 w-5" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <item.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">{event.title}</p>
-                    <p className="text-sm text-muted-foreground">{event.date}</p>
+                    <p className="font-medium text-foreground">{item.title}</p>
+                    <p className="text-sm text-muted-foreground">{item.description}</p>
                   </div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    {event.time}
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           </CardContent>
@@ -221,34 +188,16 @@ export default function Dashboard() {
       {(user?.role === 'super_admin' || user?.role === 'treasurer') && (
         <Card className="animate-slide-up" style={{ animationDelay: '0.6s' }}>
           <CardHeader>
-            <CardTitle className="text-lg">Monthly Contribution Breakdown</CardTitle>
-            <CardDescription>January 2024 category summary</CardDescription>
+            <CardTitle className="text-lg">Contribution Categories</CardTitle>
+            <CardDescription>Summary will appear when contributions are recorded</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {[
-                { category: 'Tithe', amount: 'KES 285,000', percentage: 58.7, color: 'bg-primary' },
-                { category: 'Offering', amount: 'KES 95,200', percentage: 19.6, color: 'bg-secondary' },
-                { category: 'Building Fund', amount: 'KES 75,000', percentage: 15.5, color: 'bg-success' },
-                { category: 'Welfare', amount: 'KES 30,000', percentage: 6.2, color: 'bg-warning' },
-              ].map((item, index) => (
-                <div key={index} className="p-4 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`h-3 w-3 rounded-full ${item.color}`} />
-                    <span className="text-sm font-medium text-foreground">{item.category}</span>
-                  </div>
-                  <p className="text-xl font-bold text-foreground">{item.amount}</p>
-                  <div className="mt-2">
-                    <div className="h-2 w-full rounded-full bg-muted">
-                      <div
-                        className={`h-2 rounded-full ${item.color}`}
-                        style={{ width: `${item.percentage}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{item.percentage}% of total</p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/20 mb-4">
+                <TrendingUp className="h-6 w-6 text-secondary" />
+              </div>
+              <p className="text-muted-foreground">No contribution data available yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Start recording contributions to see breakdowns</p>
             </div>
           </CardContent>
         </Card>
