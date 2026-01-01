@@ -40,6 +40,16 @@ export interface PaymentWithDetails extends Payment {
   };
 }
 
+export interface PaymentSetting {
+  id: string;
+  setting_key: string;
+  setting_value: string;
+  description: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function usePayments() {
   return useQuery({
     queryKey: ['payments'],
@@ -74,6 +84,21 @@ export function usePaymentCategories() {
   });
 }
 
+export function usePaymentSettings() {
+  return useQuery({
+    queryKey: ['payment_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_settings')
+        .select('*')
+        .order('setting_key');
+
+      if (error) throw error;
+      return data as PaymentSetting[];
+    },
+  });
+}
+
 export function useCreatePayment() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -94,6 +119,72 @@ export function useCreatePayment() {
       toast({
         title: 'Success',
         description: 'Payment recorded successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+export function useUpdatePayment() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...paymentData }: Partial<Payment> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('payments')
+        .update(paymentData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast({
+        title: 'Success',
+        description: 'Payment updated successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+export function useUpdatePaymentSetting() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ setting_key, setting_value, updated_by }: { setting_key: string; setting_value: string; updated_by?: string }) => {
+      const { data, error } = await supabase
+        .from('payment_settings')
+        .update({ setting_value, updated_by })
+        .eq('setting_key', setting_key)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment_settings'] });
+      toast({
+        title: 'Success',
+        description: 'Payment setting updated successfully.',
       });
     },
     onError: (error: Error) => {
