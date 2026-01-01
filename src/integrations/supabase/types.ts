@@ -346,6 +346,15 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      log_activity: {
+        Args: {
+          _action: string
+          _details?: Json
+          _entity_id?: string
+          _entity_type: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "super_admin" | "treasurer" | "secretary" | "pastor" | "member"
