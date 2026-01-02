@@ -47,6 +47,33 @@ export type Database = {
         }
         Relationships: []
       }
+      approved_role_emails: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          email_pattern: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          email_pattern: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          email_pattern?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string | null

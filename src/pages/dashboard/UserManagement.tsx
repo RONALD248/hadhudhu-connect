@@ -30,11 +30,13 @@ import {
   Shield,
   Loader2,
   UserCog,
-  Users
+  Users,
+  AlertTriangle
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useUsersWithRoles, useUpdateUserRole, AppRole } from '@/hooks/useUserRoles';
 import { useAuth } from '@/contexts/AuthContext';
+import { ApprovedEmailsDialog } from '@/components/admin/ApprovedEmailsDialog';
 
 const roleColors: Record<AppRole, string> = {
   super_admin: 'bg-destructive/10 text-destructive',
@@ -83,9 +85,12 @@ export default function UserManagement() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="page-header">
-        <h1 className="page-title">User Management</h1>
-        <p className="page-subtitle">Assign roles to control access to system features</p>
+      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="page-title">User Management</h1>
+          <p className="page-subtitle">Assign roles to control access to system features</p>
+        </div>
+        <ApprovedEmailsDialog />
       </div>
 
       {/* Stats Cards */}
@@ -224,6 +229,14 @@ export default function UserManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
+            {newRole === 'secretary' && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+                <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  Secretary role requires an approved church email. If the user's email is not approved, the change will fail.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">New Role</label>
               <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
