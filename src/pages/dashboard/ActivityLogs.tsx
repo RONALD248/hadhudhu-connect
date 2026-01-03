@@ -9,8 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { format } from 'date-fns';
-import { Search, Filter, RefreshCw, Shield, Activity, FileText, Download, FileSpreadsheet, FileDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { Search, Filter, RefreshCw, Shield, Activity, FileText, Download, FileSpreadsheet, FileDown, CalendarIcon, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -66,6 +69,10 @@ export default function ActivityLogs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [entityFilter, setEntityFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   const profileMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -92,6 +99,22 @@ export default function ActivityLogs() {
       if (actionFilter !== 'all' && log.action !== actionFilter) return false;
       if (entityFilter !== 'all' && log.entity_type !== entityFilter) return false;
       
+      // Date range filter
+      if (dateRange.from || dateRange.to) {
+        if (!log.created_at) return false;
+        const logDate = new Date(log.created_at);
+        
+        if (dateRange.from && dateRange.to) {
+          if (!isWithinInterval(logDate, { start: startOfDay(dateRange.from), end: endOfDay(dateRange.to) })) {
+            return false;
+          }
+        } else if (dateRange.from) {
+          if (logDate < startOfDay(dateRange.from)) return false;
+        } else if (dateRange.to) {
+          if (logDate > endOfDay(dateRange.to)) return false;
+        }
+      }
+      
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const userName = log.user_id ? profileMap.get(log.user_id)?.toLowerCase() : '';
@@ -109,7 +132,11 @@ export default function ActivityLogs() {
       
       return true;
     });
-  }, [logs, actionFilter, entityFilter, searchQuery, profileMap]);
+  }, [logs, actionFilter, entityFilter, searchQuery, profileMap, dateRange]);
+
+  const clearDateRange = () => {
+    setDateRange({ from: undefined, to: undefined });
+  };
 
   const stats = useMemo(() => {
     if (!logs) return { total: 0, today: 0, roleChanges: 0, paymentChanges: 0 };
@@ -253,7 +280,7 @@ export default function ActivityLogs() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -289,6 +316,53 @@ export default function ActivityLogs() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "flex-1 justify-start text-left font-normal",
+                      !dateRange.from && !dateRange.to && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "MMM d, yyyy")
+                      )
+                    ) : (
+                      <span>Date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={dateRange}
+                    onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                    numberOfMonths={2}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              {(dateRange.from || dateRange.to) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearDateRange}
+                  className="shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
