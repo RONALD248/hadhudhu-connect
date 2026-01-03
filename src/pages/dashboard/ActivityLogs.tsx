@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useActivityLogs, ActivityLog } from '@/hooks/useActivityLogs';
+import { useActivityLogs } from '@/hooks/useActivityLogs';
 import { useProfiles } from '@/hooks/useProfiles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
-import { Search, Filter, RefreshCw, Shield, Activity, FileText } from 'lucide-react';
+import { Search, Filter, RefreshCw, Shield, Activity, FileText, Download, FileSpreadsheet, FileDown } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const actionColors: Record<string, string> = {
   role_assigned: 'bg-green-500/10 text-green-700 border-green-200',
@@ -86,13 +89,9 @@ export default function ActivityLogs() {
     if (!logs) return [];
     
     return logs.filter(log => {
-      // Action filter
       if (actionFilter !== 'all' && log.action !== actionFilter) return false;
-      
-      // Entity type filter
       if (entityFilter !== 'all' && log.entity_type !== entityFilter) return false;
       
-      // Search query
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const userName = log.user_id ? profileMap.get(log.user_id)?.toLowerCase() : '';
@@ -128,6 +127,60 @@ export default function ActivityLogs() {
     };
   }, [logs]);
 
+  const exportToCSV = () => {
+    const headers = ['Timestamp', 'User', 'Action', 'Entity Type', 'Details'];
+    const rows = filteredLogs.map(log => [
+      log.created_at ? format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss') : '',
+      log.user_id ? profileMap.get(log.user_id) || 'Unknown' : 'System',
+      formatActionLabel(log.action),
+      log.entity_type.replace('_', ' '),
+      formatDetails(log.details as Record<string, unknown> | null),
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `activity-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Activity Logs Report', 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy HH:mm')}`, 14, 30);
+    doc.text(`Total Records: ${filteredLogs.length}`, 14, 36);
+    
+    const tableData = filteredLogs.map(log => [
+      log.created_at ? format(new Date(log.created_at), 'MMM d, HH:mm') : '-',
+      log.user_id ? profileMap.get(log.user_id) || 'Unknown' : 'System',
+      formatActionLabel(log.action),
+      log.entity_type.replace('_', ' '),
+      formatDetails(log.details as Record<string, unknown> | null).slice(0, 40),
+    ]);
+
+    autoTable(doc, {
+      head: [['Timestamp', 'User', 'Action', 'Entity', 'Details']],
+      body: tableData,
+      startY: 42,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [59, 130, 246] },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+
+    doc.save(`activity-logs-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -135,17 +188,36 @@ export default function ActivityLogs() {
           <h1 className="text-2xl font-bold text-foreground">Activity Logs</h1>
           <p className="text-muted-foreground">Monitor all audit logs and system activities</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => refetch()}
-          disabled={isRefetching}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={filteredLogs.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToCSV}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isRefetching}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -173,7 +245,6 @@ export default function ActivityLogs() {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -222,7 +293,6 @@ export default function ActivityLogs() {
         </CardContent>
       </Card>
 
-      {/* Logs Table */}
       <Card>
         <CardHeader>
           <CardTitle>Audit Trail</CardTitle>
