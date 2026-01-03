@@ -16,6 +16,7 @@ import {
   CreditCard,
   CalendarDays,
   Building2,
+  ScrollText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -84,6 +85,12 @@ const navItems: NavItem[] = [
     title: 'User Management',
     href: '/dashboard/users',
     icon: UserCog,
+    roles: ['super_admin'],
+  },
+  {
+    title: 'Activity Logs',
+    href: '/dashboard/activity-logs',
+    icon: ScrollText,
     roles: ['super_admin'],
   },
   {
