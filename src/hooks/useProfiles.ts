@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface Profile {
   id: string;
@@ -24,18 +25,72 @@ export interface Profile {
   updated_at: string;
 }
 
+// Limited profile for secretaries (excludes sensitive fields)
+export interface LimitedProfile {
+  id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  membership_number: string | null;
+  is_active: boolean;
+  photo_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useProfiles() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'super_admin';
+  const isSecretary = user?.role === 'secretary';
+
   return useQuery({
-    queryKey: ['profiles'],
+    queryKey: ['profiles', user?.role],
     queryFn: async () => {
+      // Super admin gets full access via direct table query
+      if (isAdmin) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data as Profile[];
+      }
+      
+      // Secretaries get limited fields via RPC function
+      if (isSecretary) {
+        const { data, error } = await supabase
+          .rpc('get_profiles_for_secretary');
+
+        if (error) throw error;
+        
+        // Map limited profiles to full Profile type with null sensitive fields
+        return (data as LimitedProfile[]).map(p => ({
+          ...p,
+          address: null,
+          gender: null,
+          marital_status: null,
+          date_of_birth: null,
+          baptism_date: null,
+          occupation: null,
+          employer: null,
+          emergency_contact_name: null,
+          emergency_contact_phone: null,
+        })) as Profile[];
+      }
+
+      // Regular members can only see their own profile
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Profile[];
     },
+    enabled: !!user,
   });
 }
 
