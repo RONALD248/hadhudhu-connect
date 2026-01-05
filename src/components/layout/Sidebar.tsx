@@ -49,7 +49,7 @@ const navItems: NavItem[] = [
     title: 'Contributions',
     href: '/dashboard/contributions',
     icon: Wallet,
-    roles: ['super_admin', 'treasurer', 'member'],
+    roles: ['super_admin', 'treasurer', 'pastor', 'member'],
   },
   {
     title: 'Payment Categories',
