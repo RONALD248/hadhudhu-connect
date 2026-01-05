@@ -133,7 +133,7 @@ export default function Contributions() {
   };
 
   const canRecordPayments = user?.role === 'super_admin' || user?.role === 'treasurer';
-  const canViewPayments = user?.role === 'super_admin' || user?.role === 'treasurer' || user?.role === 'secretary';
+  const canViewPayments = user?.role === 'super_admin' || user?.role === 'treasurer' || user?.role === 'secretary' || user?.role === 'pastor';
 
   // Calculate stats
   const today = new Date().toISOString().split('T')[0];

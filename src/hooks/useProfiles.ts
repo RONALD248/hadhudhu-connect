@@ -43,6 +43,7 @@ export function useProfiles() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'super_admin';
   const isSecretary = user?.role === 'secretary';
+  const isPastor = user?.role === 'pastor';
 
   return useQuery({
     queryKey: ['profiles', user?.role],
@@ -58,8 +59,8 @@ export function useProfiles() {
         return data as Profile[];
       }
       
-      // Secretaries get limited fields via RPC function
-      if (isSecretary) {
+      // Secretaries and pastors get limited fields via RPC function
+      if (isSecretary || isPastor) {
         const { data, error } = await supabase
           .rpc('get_profiles_for_secretary');
 
