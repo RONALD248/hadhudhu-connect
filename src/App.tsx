@@ -21,6 +21,9 @@ import Reports from "./pages/dashboard/Reports";
 import Settings from "./pages/dashboard/Settings";
 import UserManagement from "./pages/dashboard/UserManagement";
 import ActivityLogs from "./pages/dashboard/ActivityLogs";
+import Departments from "./pages/dashboard/Departments";
+import Events from "./pages/dashboard/Events";
+import PaymentCategories from "./pages/dashboard/PaymentCategories";
 
 const queryClient = new QueryClient();
 
@@ -48,10 +51,10 @@ const App = () => (
               <Route path="contributions" element={<Contributions />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="categories" element={<Contributions />} />
-              <Route path="departments" element={<Members />} />
+              <Route path="categories" element={<PaymentCategories />} />
+              <Route path="departments" element={<Departments />} />
               <Route path="secretariat" element={<Reports />} />
-              <Route path="events" element={<Reports />} />
+              <Route path="events" element={<Events />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="activity-logs" element={<ActivityLogs />} />
               <Route path="profile" element={<Settings />} />

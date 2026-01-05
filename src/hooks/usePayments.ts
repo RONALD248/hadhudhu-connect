@@ -228,3 +228,36 @@ export function useCreatePaymentCategory() {
     },
   });
 }
+
+export function useUpdatePaymentCategory() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...categoryData }: Partial<PaymentCategory> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('payment_categories')
+        .update(categoryData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment_categories'] });
+      toast({
+        title: 'Success',
+        description: 'Category updated successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
