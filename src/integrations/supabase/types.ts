@@ -74,6 +74,86 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_records: {
+        Row: {
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          service_id: string
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          service_id: string
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          service_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "church_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      church_services: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_time: string | null
+          id: string
+          location: string | null
+          service_date: string
+          service_type: Database["public"]["Enums"]["service_type"]
+          start_time: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          service_date: string
+          service_type?: Database["public"]["Enums"]["service_type"]
+          start_time?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          service_date?: string
+          service_type?: Database["public"]["Enums"]["service_type"]
+          start_time?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string | null
@@ -468,6 +548,14 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "treasurer" | "secretary" | "pastor" | "member"
+      service_type:
+        | "sabbath_school"
+        | "divine_service"
+        | "prayer_meeting"
+        | "youth_program"
+        | "midweek_service"
+        | "special_event"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -596,6 +684,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "treasurer", "secretary", "pastor", "member"],
+      service_type: [
+        "sabbath_school",
+        "divine_service",
+        "prayer_meeting",
+        "youth_program",
+        "midweek_service",
+        "special_event",
+        "other",
+      ],
     },
   },
 } as const
