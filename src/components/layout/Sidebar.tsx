@@ -17,6 +17,7 @@ import {
   CalendarDays,
   Building2,
   ScrollText,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -79,6 +80,12 @@ const navItems: NavItem[] = [
     title: 'Events',
     href: '/dashboard/events',
     icon: CalendarDays,
+    roles: ['super_admin', 'secretary', 'pastor'],
+  },
+  {
+    title: 'Attendance',
+    href: '/dashboard/attendance',
+    icon: ClipboardCheck,
     roles: ['super_admin', 'secretary', 'pastor'],
   },
   {
