@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useChurchServices, useAttendanceStats } from '@/hooks/useAttendance';
+import { AttendancePatternChart } from '@/components/charts/AttendancePatternChart';
 import { 
   Users, 
   Building2, 
@@ -195,6 +196,13 @@ export function SecretaryDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Attendance Chart */}
+      <AttendancePatternChart 
+        weeks={8} 
+        title="Weekly Attendance" 
+        description="Service attendance over the past 8 weeks" 
+      />
     </div>
   );
 }

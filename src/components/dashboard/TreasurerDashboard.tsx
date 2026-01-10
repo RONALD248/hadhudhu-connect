@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { usePayments, usePaymentCategories } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
+import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
+import { CategoryBreakdownChart } from '@/components/charts/CategoryBreakdownChart';
 import { 
   Wallet, 
   TrendingUp, 
@@ -225,6 +227,19 @@ export function TreasurerDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ContributionTrendChart 
+          months={6} 
+          title="Revenue Trends" 
+          description="Monthly collections over 6 months" 
+        />
+        <CategoryBreakdownChart 
+          title="Category Distribution" 
+          description="This month's contribution breakdown" 
+        />
       </div>
 
       {/* Payment Methods Summary */}

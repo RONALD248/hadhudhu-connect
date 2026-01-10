@@ -6,6 +6,8 @@ import { useProfiles } from '@/hooks/useProfiles';
 import { usePayments } from '@/hooks/usePayments';
 import { useChurchServices, useAttendanceStats } from '@/hooks/useAttendance';
 import { useDepartments } from '@/hooks/useDepartments';
+import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
+import { AttendancePatternChart } from '@/components/charts/AttendancePatternChart';
 import { 
   Users, 
   Wallet, 
@@ -209,6 +211,20 @@ export function PastorDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <AttendancePatternChart 
+          weeks={8} 
+          title="Attendance Trends" 
+          description="Weekly service attendance" 
+        />
+        <ContributionTrendChart 
+          months={6} 
+          title="Giving Trends" 
+          description="Monthly contributions overview" 
+        />
       </div>
 
       {/* Attendance by Service Type */}
