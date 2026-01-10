@@ -6,6 +6,8 @@ import { useProfiles } from '@/hooks/useProfiles';
 import { usePayments } from '@/hooks/usePayments';
 import { useChurchServices, useAttendanceStats } from '@/hooks/useAttendance';
 import { useDepartments } from '@/hooks/useDepartments';
+import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
+import { AttendancePatternChart } from '@/components/charts/AttendancePatternChart';
 import { 
   Users, 
   Wallet, 
@@ -217,6 +219,20 @@ export function ElderDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ContributionTrendChart 
+          months={6} 
+          title="Contribution Trends" 
+          description="6-month collection overview" 
+        />
+        <AttendancePatternChart 
+          weeks={8} 
+          title="Attendance Patterns" 
+          description="Weekly service attendance" 
+        />
       </div>
     </div>
   );
