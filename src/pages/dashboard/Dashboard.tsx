@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SecretaryDashboard } from '@/components/dashboard/SecretaryDashboard';
 import { TreasurerDashboard } from '@/components/dashboard/TreasurerDashboard';
 import { PastorDashboard } from '@/components/dashboard/PastorDashboard';
+import { ElderDashboard } from '@/components/dashboard/ElderDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -13,8 +14,6 @@ import {
   ArrowDownRight,
   Plus,
   FileText,
-  Building2,
-  CalendarDays
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -24,9 +23,10 @@ export default function Dashboard() {
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       super_admin: 'Super Admin',
-      treasurer: 'Treasurer Elder',
+      treasurer: 'Treasurer',
       secretary: 'Church Secretary',
       pastor: 'Pastor',
+      elder: 'Church Elder',
       member: 'Member',
     };
     return labels[role] || role;
@@ -41,6 +41,8 @@ export default function Dashboard() {
         return <TreasurerDashboard />;
       case 'pastor':
         return <PastorDashboard />;
+      case 'elder':
+        return <ElderDashboard />;
       case 'super_admin':
         return <AdminDashboard />;
       default:

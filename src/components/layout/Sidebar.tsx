@@ -38,19 +38,19 @@ const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['super_admin', 'treasurer', 'secretary', 'pastor', 'member'],
+    roles: ['super_admin', 'treasurer', 'secretary', 'pastor', 'elder', 'member'],
   },
   {
     title: 'Members',
     href: '/dashboard/members',
     icon: Users,
-    roles: ['super_admin', 'secretary', 'pastor'],
+    roles: ['super_admin', 'secretary', 'pastor', 'elder'],
   },
   {
     title: 'Contributions',
     href: '/dashboard/contributions',
     icon: Wallet,
-    roles: ['super_admin', 'treasurer', 'pastor', 'member'],
+    roles: ['super_admin', 'treasurer', 'pastor', 'elder', 'member'],
   },
   {
     title: 'Payment Categories',
@@ -62,7 +62,7 @@ const navItems: NavItem[] = [
     title: 'Reports',
     href: '/dashboard/reports',
     icon: PieChart,
-    roles: ['super_admin', 'treasurer', 'secretary', 'pastor'],
+    roles: ['super_admin', 'treasurer', 'secretary', 'pastor', 'elder'],
   },
   {
     title: 'Departments',
@@ -86,7 +86,7 @@ const navItems: NavItem[] = [
     title: 'Attendance',
     href: '/dashboard/attendance',
     icon: ClipboardCheck,
-    roles: ['super_admin', 'secretary', 'pastor'],
+    roles: ['super_admin', 'secretary', 'pastor', 'elder'],
   },
   {
     title: 'User Management',
@@ -104,7 +104,7 @@ const navItems: NavItem[] = [
     title: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
-    roles: ['super_admin', 'treasurer', 'secretary', 'pastor', 'member'],
+    roles: ['super_admin', 'treasurer', 'secretary', 'pastor', 'elder', 'member'],
   },
 ];
 
