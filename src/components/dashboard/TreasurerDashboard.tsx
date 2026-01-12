@@ -6,6 +6,7 @@ import { usePayments, usePaymentCategories } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
 import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
 import { CategoryBreakdownChart } from '@/components/charts/CategoryBreakdownChart';
+import { exportDashboardReport } from '@/lib/pdfExport';
 import { 
   Wallet, 
   TrendingUp, 
@@ -14,8 +15,10 @@ import {
   PieChart,
   Users,
   ArrowUpRight,
+  FileDown,
 } from 'lucide-react';
-import { format, startOfMonth, startOfYear } from 'date-fns';
+import { format, startOfMonth, startOfYear, subMonths } from 'date-fns';
+import { toast } from 'sonner';
 
 export function TreasurerDashboard() {
   const { data: payments, isLoading: paymentsLoading } = usePayments();
@@ -88,6 +91,52 @@ export function TreasurerDashboard() {
     { title: 'View Members', icon: Users, href: '/dashboard/members', variant: 'outline' as const },
   ];
 
+  const handleExportPDF = () => {
+    // Generate contribution trend data
+    const contributionTrend = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = subMonths(now, i);
+      const monthPaymentsFiltered = payments?.filter(p => {
+        const paymentDate = new Date(p.payment_date);
+        return paymentDate.getMonth() === monthDate.getMonth() && 
+               paymentDate.getFullYear() === monthDate.getFullYear();
+      }) || [];
+      contributionTrend.push({
+        label: format(monthDate, 'MMM yyyy'),
+        value: monthPaymentsFiltered.reduce((sum, p) => sum + Number(p.amount), 0)
+      });
+    }
+
+    // Category breakdown for PDF
+    const categoryBreakdownForPDF = Object.entries(categoryBreakdown).map(
+      ([label, value]) => ({ label, value })
+    );
+
+    // Recent payments for report
+    const recentPaymentsForReport = recentPayments.map(p => ({
+      payment_date: p.payment_date,
+      amount: p.amount,
+      payment_method: formatPaymentMethod(p.payment_method),
+      reference_number: p.reference_number,
+      category: p.payment_categories ? { name: p.payment_categories.name } : null,
+    }));
+
+    exportDashboardReport({
+      reportTitle: 'Treasury Report',
+      stats: [
+        { title: 'Monthly Collections', value: `KES ${monthlyTotal.toLocaleString()}`, description: `${monthlyPayments.length} payments` },
+        { title: 'YTD Collections', value: `KES ${yearlyTotal.toLocaleString()}`, description: `${yearlyPayments.length} payments` },
+        { title: 'Total Contributions', value: totalContributions.toString(), description: 'All time records' },
+        { title: 'Active Categories', value: activeCategories.toString(), description: 'Payment categories' },
+      ],
+      contributionTrend,
+      categoryBreakdown: categoryBreakdownForPDF,
+      recentPayments: recentPaymentsForReport,
+      additionalNotes: 'This treasury report summarizes all financial contributions and payment activities.',
+    });
+    toast.success('Treasury report exported successfully');
+  };
+
   const formatPaymentMethod = (method: string) => {
     const methods: Record<string, string> = {
       cash: 'Cash',
@@ -102,6 +151,10 @@ export function TreasurerDashboard() {
     <div className="space-y-6">
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
+        <Button onClick={handleExportPDF} variant="outline" className="gap-2">
+          <FileDown className="h-4 w-4" />
+          Export Report
+        </Button>
         {quickActions.map((action) => (
           <Link key={action.title} to={action.href}>
             <Button variant={action.variant} className="gap-2">

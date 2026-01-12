@@ -8,6 +8,7 @@ import { useChurchServices, useAttendanceStats } from '@/hooks/useAttendance';
 import { useDepartments } from '@/hooks/useDepartments';
 import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
 import { AttendancePatternChart } from '@/components/charts/AttendancePatternChart';
+import { exportDashboardReport } from '@/lib/pdfExport';
 import { 
   Users, 
   Wallet, 
@@ -17,8 +18,10 @@ import {
   PieChart,
   Eye,
   CalendarDays,
+  FileDown,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, startOfYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from 'date-fns';
+import { toast } from 'sonner';
 
 export function ElderDashboard() {
   const { data: profiles, isLoading: profilesLoading } = useProfiles();
@@ -81,6 +84,47 @@ export function ElderDashboard() {
     { title: 'View Reports', icon: PieChart, href: '/dashboard/reports', variant: 'outline' as const },
   ];
 
+  const handleExportPDF = () => {
+    // Generate contribution trend data
+    const contributionTrend = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = subMonths(now, i);
+      const monthPayments = payments?.filter(p => {
+        const paymentDate = new Date(p.payment_date);
+        return paymentDate.getMonth() === monthDate.getMonth() && 
+               paymentDate.getFullYear() === monthDate.getFullYear();
+      }) || [];
+      contributionTrend.push({
+        label: format(monthDate, 'MMM yyyy'),
+        value: monthPayments.reduce((sum, p) => sum + Number(p.amount), 0)
+      });
+    }
+
+    // Generate category breakdown
+    const categoryMap: Record<string, number> = {};
+    monthlyPayments.forEach(p => {
+      const catName = (p as { payment_categories?: { name: string } }).payment_categories?.name || 'Other';
+      categoryMap[catName] = (categoryMap[catName] || 0) + Number(p.amount);
+    });
+    const categoryBreakdown = Object.entries(categoryMap).map(([label, value]) => ({ label, value }));
+
+    exportDashboardReport({
+      reportTitle: 'Elder Oversight Report',
+      stats: [
+        { title: 'Total Members', value: totalMembers.toString(), description: `${activeMembers} active` },
+        { title: 'Monthly Collections', value: `KES ${monthlyTotal.toLocaleString()}`, description: `${monthlyPayments.length} contributions` },
+        { title: 'YTD Collections', value: `KES ${yearlyTotal.toLocaleString()}`, description: `${yearlyPayments.length} total` },
+        { title: 'Avg Attendance', value: attendanceStats?.averageAttendance?.toString() || '0', description: 'Per service this month' },
+        { title: 'Active Departments', value: activeDepartments.toString(), description: 'Ministries' },
+        { title: 'Services This Month', value: (attendanceStats?.totalServices || 0).toString(), description: `${attendanceStats?.totalAttendance || 0} total attendance` },
+      ],
+      contributionTrend,
+      categoryBreakdown,
+      additionalNotes: 'This report provides an oversight view of church operations for the Elder Board.',
+    });
+    toast.success('Dashboard report exported successfully');
+  };
+
   return (
     <div className="space-y-6">
       {/* Role Badge */}
@@ -94,6 +138,10 @@ export function ElderDashboard() {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
+        <Button onClick={handleExportPDF} variant="outline" className="gap-2">
+          <FileDown className="h-4 w-4" />
+          Export Report
+        </Button>
         {quickActions.map((action) => (
           <Link key={action.title} to={action.href}>
             <Button variant={action.variant} className="gap-2">
