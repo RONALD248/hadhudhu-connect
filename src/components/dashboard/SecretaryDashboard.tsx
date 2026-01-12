@@ -6,6 +6,7 @@ import { useProfiles } from '@/hooks/useProfiles';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useChurchServices, useAttendanceStats } from '@/hooks/useAttendance';
 import { AttendancePatternChart } from '@/components/charts/AttendancePatternChart';
+import { exportDashboardReport } from '@/lib/pdfExport';
 import { 
   Users, 
   Building2, 
@@ -14,8 +15,10 @@ import {
   FolderOpen,
   CalendarDays,
   TrendingUp,
+  FileDown,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subWeeks } from 'date-fns';
+import { toast } from 'sonner';
 
 export function SecretaryDashboard() {
   const { data: profiles, isLoading: profilesLoading } = useProfiles();
@@ -70,10 +73,47 @@ export function SecretaryDashboard() {
     { title: 'Manage Departments', icon: Building2, href: '/dashboard/departments', variant: 'outline' as const },
   ];
 
+  const now = new Date();
+
+  const handleExportPDF = () => {
+    // Generate attendance trend data (weekly)
+    const attendanceTrend = [];
+    for (let i = 7; i >= 0; i--) {
+      const weekEnd = subWeeks(now, i);
+      const weekStart = subWeeks(weekEnd, 1);
+      const weekServices = services?.filter(s => {
+        const serviceDate = new Date(s.service_date);
+        return serviceDate >= weekStart && serviceDate <= weekEnd;
+      }) || [];
+      attendanceTrend.push({
+        label: format(weekEnd, 'MMM d'),
+        value: weekServices.length
+      });
+    }
+
+    exportDashboardReport({
+      reportTitle: 'Secretary Report',
+      stats: [
+        { title: 'Total Members', value: totalMembers.toString(), description: `${activeMembers} active` },
+        { title: 'Baptized Members', value: baptizedMembers.toString(), description: `${Math.round((baptizedMembers / totalMembers) * 100) || 0}% of total` },
+        { title: 'Active Departments', value: activeDepartments.toString(), description: 'Ministries' },
+        { title: 'Avg Attendance', value: attendanceStats?.averageAttendance?.toString() || '0', description: 'This month' },
+        { title: 'Services This Month', value: (attendanceStats?.totalServices || 0).toString(), description: `${attendanceStats?.totalAttendance || 0} total attendance` },
+      ],
+      attendanceTrend,
+      additionalNotes: 'This secretary report provides an overview of membership and attendance records.',
+    });
+    toast.success('Secretary report exported successfully');
+  };
+
   return (
     <div className="space-y-6">
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
+        <Button onClick={handleExportPDF} variant="outline" className="gap-2">
+          <FileDown className="h-4 w-4" />
+          Export Report
+        </Button>
         {quickActions.map((action) => (
           <Link key={action.title} to={action.href}>
             <Button variant={action.variant} className="gap-2">
