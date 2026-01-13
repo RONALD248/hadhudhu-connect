@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export type AppRole = 'super_admin' | 'treasurer' | 'secretary' | 'pastor' | 'member';
+export type AppRole = 'super_admin' | 'treasurer' | 'secretary' | 'pastor' | 'elder' | 'member';
 
 export interface ApprovedEmail {
   id: string;

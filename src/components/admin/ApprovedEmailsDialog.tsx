@@ -45,6 +45,7 @@ const roleLabels: Record<AppRole, string> = {
   treasurer: 'Treasurer',
   secretary: 'Secretary',
   pastor: 'Pastor',
+  elder: 'Elder',
   member: 'Member',
 };
 
@@ -53,6 +54,7 @@ const roleColors: Record<AppRole, string> = {
   treasurer: 'bg-primary/10 text-primary',
   secretary: 'bg-success/10 text-success',
   pastor: 'bg-warning/10 text-warning',
+  elder: 'bg-indigo-100 text-indigo-700',
   member: 'bg-muted text-muted-foreground',
 };
 
