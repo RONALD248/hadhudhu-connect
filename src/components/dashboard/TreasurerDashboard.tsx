@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { usePayments, usePaymentCategories } from '@/hooks/usePayments';
+import { Progress } from '@/components/ui/progress';
+import { usePayments, usePaymentCategories, usePledges } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
 import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
 import { CategoryBreakdownChart } from '@/components/charts/CategoryBreakdownChart';
@@ -16,14 +17,19 @@ import {
   Users,
   ArrowUpRight,
   FileDown,
+  Target,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
-import { format, startOfMonth, startOfYear, subMonths } from 'date-fns';
+import { format, startOfMonth, startOfYear, subMonths, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 
 export function TreasurerDashboard() {
   const { data: payments, isLoading: paymentsLoading } = usePayments();
   const { data: categories } = usePaymentCategories();
   const { data: profiles } = useProfiles();
+  const { data: pledges } = usePledges();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -39,6 +45,14 @@ export function TreasurerDashboard() {
 
   const recentPayments = payments?.slice(0, 5) || [];
 
+  // Pledge stats
+  const totalPledges = pledges?.length || 0;
+  const activePledges = pledges?.filter(p => p.status === 'pending' || p.status === 'partial') || [];
+  const fulfilledPledges = pledges?.filter(p => p.status === 'fulfilled') || [];
+  const totalPledgedAmount = pledges?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+  const totalFulfilledAmount = pledges?.reduce((sum, p) => sum + Number(p.fulfilled_amount || 0), 0) || 0;
+  const pledgeFulfillmentRate = totalPledgedAmount > 0 ? (totalFulfilledAmount / totalPledgedAmount) * 100 : 0;
+
   // Payment method breakdown
   const paymentMethods = monthlyPayments.reduce((acc, p) => {
     acc[p.payment_method] = (acc[p.payment_method] || 0) + Number(p.amount);
@@ -52,6 +66,16 @@ export function TreasurerDashboard() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Calculate month-over-month growth
+  const lastMonthStart = subMonths(monthStart, 1);
+  const lastMonthPayments = payments?.filter(p => {
+    const date = new Date(p.payment_date);
+    return date >= lastMonthStart && date < monthStart;
+  }) || [];
+  const lastMonthTotal = lastMonthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const growthRate = lastMonthTotal > 0 ? ((monthlyTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
+  const growthText = growthRate > 0 ? `+${growthRate.toFixed(0)}%` : `${growthRate.toFixed(0)}%`;
+
   const stats = [
     {
       title: 'Monthly Collections',
@@ -59,7 +83,8 @@ export function TreasurerDashboard() {
       icon: Wallet,
       href: '/dashboard/contributions',
       description: `${monthlyPayments.length} payments`,
-      trend: '+12%',
+      trend: lastMonthTotal > 0 ? growthText : undefined,
+      trendUp: growthRate > 0,
     },
     {
       title: 'YTD Collections',
@@ -69,11 +94,11 @@ export function TreasurerDashboard() {
       description: `${yearlyPayments.length} payments`,
     },
     {
-      title: 'Total Contributions',
-      value: totalContributions.toString(),
-      icon: CreditCard,
+      title: 'Active Pledges',
+      value: activePledges.length.toString(),
+      icon: Target,
       href: '/dashboard/contributions',
-      description: 'All time records',
+      description: `KES ${(totalPledgedAmount - totalFulfilledAmount).toLocaleString()} pending`,
     },
     {
       title: 'Active Categories',
@@ -128,6 +153,7 @@ export function TreasurerDashboard() {
         { title: 'YTD Collections', value: `KES ${yearlyTotal.toLocaleString()}`, description: `${yearlyPayments.length} payments` },
         { title: 'Total Contributions', value: totalContributions.toString(), description: 'All time records' },
         { title: 'Active Categories', value: activeCategories.toString(), description: 'Payment categories' },
+        { title: 'Total Pledges', value: totalPledges.toString(), description: `${pledgeFulfillmentRate.toFixed(0)}% fulfilled` },
       ],
       contributionTrend,
       categoryBreakdown: categoryBreakdownForPDF,
@@ -145,6 +171,15 @@ export function TreasurerDashboard() {
       cheque: 'Cheque',
     };
     return methods[method] || method;
+  };
+
+  const getPledgeStatusColor = (status: string) => {
+    switch (status) {
+      case 'fulfilled': return 'bg-green-100 text-green-700';
+      case 'partial': return 'bg-amber-100 text-amber-700';
+      case 'overdue': return 'bg-red-100 text-red-700';
+      default: return 'bg-blue-100 text-blue-700';
+    }
   };
 
   return (
@@ -176,8 +211,8 @@ export function TreasurerDashboard() {
                     <stat.icon className="h-6 w-6 text-primary" />
                   </div>
                   {stat.trend && (
-                    <Badge variant="secondary" className="text-green-600 bg-green-100">
-                      <ArrowUpRight className="h-3 w-3 mr-1" />
+                    <Badge variant="secondary" className={stat.trendUp ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"}>
+                      <ArrowUpRight className={`h-3 w-3 mr-1 ${!stat.trendUp && 'rotate-90'}`} />
                       {stat.trend}
                     </Badge>
                   )}
@@ -192,6 +227,51 @@ export function TreasurerDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Pledge Progress Overview */}
+      {totalPledges > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Pledge Fulfillment Overview
+            </CardTitle>
+            <CardDescription>Track pledge progress and pending amounts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Overall Fulfillment Rate</p>
+                  <p className="text-2xl font-bold">{pledgeFulfillmentRate.toFixed(1)}%</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total Pledged</p>
+                  <p className="font-semibold">KES {totalPledgedAmount.toLocaleString()}</p>
+                </div>
+              </div>
+              <Progress value={pledgeFulfillmentRate} className="h-3" />
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                <div className="text-center p-3 rounded-lg bg-green-50">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-green-700">{fulfilledPledges.length}</p>
+                  <p className="text-xs text-green-600">Fulfilled</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-amber-50">
+                  <Clock className="h-5 w-5 text-amber-600 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-amber-700">{activePledges.filter(p => p.status === 'partial').length}</p>
+                  <p className="text-xs text-amber-600">Partial</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-blue-50">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-blue-700">{activePledges.filter(p => p.status === 'pending').length}</p>
+                  <p className="text-xs text-blue-600">Pending</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -294,6 +374,61 @@ export function TreasurerDashboard() {
           description="This month's contribution breakdown" 
         />
       </div>
+
+      {/* Active Pledges Section */}
+      {activePledges.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Active Pledges</CardTitle>
+            <CardDescription>Pledges awaiting fulfillment</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {activePledges.slice(0, 5).map((pledge) => {
+                const profile = profiles?.find(p => p.user_id === pledge.user_id);
+                const fulfillmentPercent = pledge.amount > 0 
+                  ? ((pledge.fulfilled_amount || 0) / pledge.amount) * 100 
+                  : 0;
+                const daysUntilDue = pledge.due_date 
+                  ? differenceInDays(new Date(pledge.due_date), now) 
+                  : null;
+                
+                return (
+                  <div key={pledge.id} className="p-4 rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="font-medium">
+                          {profile ? `${profile.first_name} ${profile.last_name}` : 'Unknown Member'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {pledge.payment_categories?.name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge className={getPledgeStatusColor(pledge.status)}>
+                          {pledge.status}
+                        </Badge>
+                        {daysUntilDue !== null && (
+                          <p className={`text-xs mt-1 ${daysUntilDue < 0 ? 'text-red-600' : daysUntilDue < 7 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                            {daysUntilDue < 0 ? `${Math.abs(daysUntilDue)} days overdue` : `${daysUntilDue} days left`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>KES {(pledge.fulfilled_amount || 0).toLocaleString()} of KES {pledge.amount.toLocaleString()}</span>
+                        <span className="font-medium">{fulfillmentPercent.toFixed(0)}%</span>
+                      </div>
+                      <Progress value={fulfillmentPercent} className="h-2" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payment Methods Summary */}
       {Object.keys(paymentMethods).length > 0 && (

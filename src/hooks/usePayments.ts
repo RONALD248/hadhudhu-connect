@@ -261,3 +261,106 @@ export function useUpdatePaymentCategory() {
     },
   });
 }
+
+// Pledges interfaces and hooks
+export interface Pledge {
+  id: string;
+  user_id: string;
+  category_id: string;
+  amount: number;
+  fulfilled_amount: number;
+  due_date: string | null;
+  status: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PledgeWithDetails extends Pledge {
+  payment_categories?: {
+    name: string;
+  };
+}
+
+export function usePledges() {
+  return useQuery({
+    queryKey: ['pledges'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pledges')
+        .select(`
+          *,
+          payment_categories:category_id (name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as unknown as PledgeWithDetails[];
+    },
+  });
+}
+
+export function useCreatePledge() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (pledgeData: Omit<Pledge, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data, error } = await supabase
+        .from('pledges')
+        .insert(pledgeData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pledges'] });
+      toast({
+        title: 'Success',
+        description: 'Pledge recorded successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+export function useUpdatePledge() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...pledgeData }: Partial<Pledge> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('pledges')
+        .update(pledgeData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pledges'] });
+      toast({
+        title: 'Success',
+        description: 'Pledge updated successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
