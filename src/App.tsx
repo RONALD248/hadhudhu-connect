@@ -26,6 +26,7 @@ import Events from "./pages/dashboard/Events";
 import PaymentCategories from "./pages/dashboard/PaymentCategories";
 import Secretariat from "./pages/dashboard/Secretariat";
 import Attendance from "./pages/dashboard/Attendance";
+import Pledges from "./pages/dashboard/Pledges";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="secretariat" element={<Secretariat />} />
               <Route path="events" element={<Events />} />
               <Route path="attendance" element={<Attendance />} />
+              <Route path="pledges" element={<Pledges />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="activity-logs" element={<ActivityLogs />} />
               <Route path="profile" element={<Settings />} />
