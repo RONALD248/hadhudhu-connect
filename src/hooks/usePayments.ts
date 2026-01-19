@@ -364,3 +364,91 @@ export function useUpdatePledge() {
     },
   });
 }
+
+// Record a payment against a pledge
+export interface PledgePaymentData {
+  pledge_id: string;
+  amount: number;
+  payment_method: string;
+  reference_number?: string;
+  description?: string;
+}
+
+export function useRecordPledgePayment() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (paymentData: PledgePaymentData) => {
+      // First, get the current pledge
+      const { data: pledge, error: pledgeError } = await supabase
+        .from('pledges')
+        .select('*')
+        .eq('id', paymentData.pledge_id)
+        .single();
+
+      if (pledgeError) throw pledgeError;
+      if (!pledge) throw new Error('Pledge not found');
+
+      // Calculate new fulfilled amount
+      const newFulfilledAmount = Number(pledge.fulfilled_amount) + paymentData.amount;
+      const pledgeAmount = Number(pledge.amount);
+      
+      // Determine new status
+      let newStatus = pledge.status;
+      if (newFulfilledAmount >= pledgeAmount) {
+        newStatus = 'fulfilled';
+      } else if (newFulfilledAmount > 0) {
+        newStatus = 'pending'; // Keep as pending if partially fulfilled
+      }
+
+      // Record the payment in payments table
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          user_id: pledge.user_id,
+          category_id: pledge.category_id,
+          amount: paymentData.amount,
+          payment_method: paymentData.payment_method,
+          reference_number: paymentData.reference_number || null,
+          description: paymentData.description || `Pledge payment`,
+          payment_date: new Date().toISOString().split('T')[0],
+        });
+
+      if (paymentError) throw paymentError;
+
+      // Update the pledge with new fulfilled amount and status
+      const { data: updatedPledge, error: updateError } = await supabase
+        .from('pledges')
+        .update({
+          fulfilled_amount: newFulfilledAmount,
+          status: newStatus,
+        })
+        .eq('id', paymentData.pledge_id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return updatedPledge;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['pledges'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      
+      const isFulfilled = data.status === 'fulfilled';
+      toast({
+        title: isFulfilled ? 'Pledge Fulfilled!' : 'Payment Recorded',
+        description: isFulfilled 
+          ? 'This pledge has been fully fulfilled.' 
+          : 'Payment recorded and pledge progress updated.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}

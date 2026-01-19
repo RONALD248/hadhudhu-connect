@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePledges, useCreatePledge, useUpdatePledge, usePaymentCategories, PledgeWithDetails } from '@/hooks/usePayments';
+import { usePledges, useCreatePledge, useUpdatePledge, useRecordPledgePayment, usePaymentCategories, PledgeWithDetails } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -51,6 +52,7 @@ import {
   CheckCircle2,
   Clock,
   HandCoins,
+  CreditCard,
 } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, addDays } from 'date-fns';
 
@@ -61,11 +63,13 @@ export default function Pledges() {
   const { data: profiles = [] } = useProfiles();
   const createPledge = useCreatePledge();
   const updatePledge = useUpdatePledge();
+  const recordPledgePayment = useRecordPledgePayment();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedPledge, setSelectedPledge] = useState<PledgeWithDetails | null>(null);
 
   // Form state for new pledge
@@ -83,6 +87,14 @@ export default function Pledges() {
     fulfilled_amount: '',
     due_date: '',
     status: '',
+    description: '',
+  });
+
+  // Form state for recording payment
+  const [pledgePayment, setPledgePayment] = useState({
+    amount: '',
+    payment_method: 'cash',
+    reference_number: '',
     description: '',
   });
 
@@ -182,6 +194,44 @@ export default function Pledges() {
       description: pledge.description || '',
     });
     setIsEditDialogOpen(true);
+  };
+
+  const openPaymentDialog = (pledge: PledgeWithDetails) => {
+    setSelectedPledge(pledge);
+    const remainingAmount = Number(pledge.amount) - Number(pledge.fulfilled_amount);
+    setPledgePayment({
+      amount: remainingAmount > 0 ? remainingAmount.toString() : '',
+      payment_method: 'cash',
+      reference_number: '',
+      description: '',
+    });
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleRecordPayment = () => {
+    if (!selectedPledge || !pledgePayment.amount) return;
+
+    recordPledgePayment.mutate(
+      {
+        pledge_id: selectedPledge.id,
+        amount: parseFloat(pledgePayment.amount),
+        payment_method: pledgePayment.payment_method,
+        reference_number: pledgePayment.reference_number || undefined,
+        description: pledgePayment.description || undefined,
+      },
+      {
+        onSuccess: () => {
+          setIsPaymentDialogOpen(false);
+          setSelectedPledge(null);
+          setPledgePayment({
+            amount: '',
+            payment_method: 'cash',
+            reference_number: '',
+            description: '',
+          });
+        },
+      }
+    );
   };
 
   const getStatusBadge = (status: string, dueDate: string | null) => {
@@ -499,6 +549,13 @@ export default function Pledges() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {pledge.status !== 'fulfilled' && pledge.status !== 'cancelled' && (
+                                  <DropdownMenuItem onClick={() => openPaymentDialog(pledge)}>
+                                    <CreditCard className="h-4 w-4 mr-2" />
+                                    Record Payment
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => openEditDialog(pledge)}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit Pledge
@@ -591,6 +648,110 @@ export default function Pledges() {
             </Button>
             <Button onClick={handleEditPledge} disabled={updatePledge.isPending}>
               {updatePledge.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Record Payment Dialog */}
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Record Pledge Payment
+            </DialogTitle>
+            <DialogDescription>
+              Record a payment for {selectedPledge && getMemberName(selectedPledge.user_id)}'s pledge
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPledge && (
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Category:</span>
+                <span className="font-medium">{selectedPledge.payment_categories?.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Pledged:</span>
+                <span className="font-medium">{formatCurrency(Number(selectedPledge.amount))}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Already Fulfilled:</span>
+                <span className="font-medium">{formatCurrency(Number(selectedPledge.fulfilled_amount))}</span>
+              </div>
+              <div className="flex justify-between text-sm font-semibold border-t pt-2">
+                <span>Remaining:</span>
+                <span className="text-primary">
+                  {formatCurrency(Number(selectedPledge.amount) - Number(selectedPledge.fulfilled_amount))}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="payment_amount">Payment Amount (KES)</Label>
+              <Input
+                id="payment_amount"
+                type="number"
+                placeholder="0.00"
+                value={pledgePayment.amount}
+                onChange={(e) => setPledgePayment({ ...pledgePayment, amount: e.target.value })}
+              />
+              {selectedPledge && parseFloat(pledgePayment.amount) > (Number(selectedPledge.amount) - Number(selectedPledge.fulfilled_amount)) && (
+                <p className="text-xs text-warning">Amount exceeds remaining balance. The pledge will be marked as fulfilled.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment_method">Payment Method</Label>
+              <Select
+                value={pledgePayment.payment_method}
+                onValueChange={(value) => setPledgePayment({ ...pledgePayment, payment_method: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="mpesa">M-Pesa</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment_reference">Reference Number (Optional)</Label>
+              <Input
+                id="payment_reference"
+                placeholder="e.g., M-Pesa code, cheque number"
+                value={pledgePayment.reference_number}
+                onChange={(e) => setPledgePayment({ ...pledgePayment, reference_number: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment_description">Notes (Optional)</Label>
+              <Textarea
+                id="payment_description"
+                placeholder="Add any notes about this payment..."
+                value={pledgePayment.description}
+                onChange={(e) => setPledgePayment({ ...pledgePayment, description: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleRecordPayment} 
+              disabled={recordPledgePayment.isPending || !pledgePayment.amount}
+            >
+              {recordPledgePayment.isPending ? 'Recording...' : 'Record Payment'}
             </Button>
           </DialogFooter>
         </DialogContent>
