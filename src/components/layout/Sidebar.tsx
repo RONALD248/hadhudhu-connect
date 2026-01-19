@@ -18,6 +18,7 @@ import {
   Building2,
   ScrollText,
   ClipboardCheck,
+  HandCoins,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -56,6 +57,12 @@ const navItems: NavItem[] = [
     title: 'Payment Categories',
     href: '/dashboard/categories',
     icon: CreditCard,
+    roles: ['super_admin', 'treasurer'],
+  },
+  {
+    title: 'Pledges',
+    href: '/dashboard/pledges',
+    icon: HandCoins,
     roles: ['super_admin', 'treasurer'],
   },
   {
