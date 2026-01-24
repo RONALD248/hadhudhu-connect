@@ -19,6 +19,7 @@ import {
   ScrollText,
   ClipboardCheck,
   HandCoins,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -186,13 +187,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-4">
+        <div className="border-t border-sidebar-border p-4 space-y-3">
+          <Link
+            to="/install"
+            className="flex items-center gap-2 rounded-lg bg-sidebar-primary/10 hover:bg-sidebar-primary/20 p-3 transition-colors"
+          >
+            <Download className="h-4 w-4 text-sidebar-primary" />
+            <span className="text-sm font-medium text-sidebar-foreground">Install App</span>
+          </Link>
           <div className="rounded-lg bg-sidebar-accent p-3">
             <p className="text-xs text-sidebar-foreground/80">
               Uranga District
             </p>
             <p className="text-[10px] text-sidebar-foreground/60 mt-1">
-              © 2024 Hadhudhu SDA Church
+              © {new Date().getFullYear()} Hadhudhu SDA Church
             </p>
           </div>
         </div>

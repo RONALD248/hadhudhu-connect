@@ -11,6 +11,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import NotFound from "./pages/NotFound";
+import Install from "./pages/Install";
 
 // Dashboard
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -40,6 +41,7 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
+            <Route path="/install" element={<Install />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
 
