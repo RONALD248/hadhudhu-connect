@@ -9,7 +9,8 @@ import {
   ArrowRight,
   CheckCircle2,
   BarChart3,
-  Lock
+  Lock,
+  Download
 } from 'lucide-react';
 
 export default function Landing() {
@@ -69,6 +70,12 @@ export default function Landing() {
           </Link>
           
           <div className="flex items-center gap-4">
+            <Link to="/install">
+              <Button variant="ghost" className="gap-2">
+                <Download className="h-4 w-4" />
+                Install App
+              </Button>
+            </Link>
             <Link to="/auth/login">
               <Button variant="ghost">Sign In</Button>
             </Link>
