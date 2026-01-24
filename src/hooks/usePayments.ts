@@ -282,6 +282,27 @@ export interface PledgeWithDetails extends Pledge {
   };
 }
 
+// Get payments for a specific pledge (by user_id and category_id)
+export function usePledgePayments(pledgeUserId: string | null, pledgeCategoryId: string | null) {
+  return useQuery({
+    queryKey: ['pledge_payments', pledgeUserId, pledgeCategoryId],
+    queryFn: async () => {
+      if (!pledgeUserId || !pledgeCategoryId) return [];
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('user_id', pledgeUserId)
+        .eq('category_id', pledgeCategoryId)
+        .order('payment_date', { ascending: false });
+
+      if (error) throw error;
+      return data as Payment[];
+    },
+    enabled: !!pledgeUserId && !!pledgeCategoryId,
+  });
+}
+
 export function usePledges() {
   return useQuery({
     queryKey: ['pledges'],

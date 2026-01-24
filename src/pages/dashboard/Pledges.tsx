@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePledges, useCreatePledge, useUpdatePledge, useRecordPledgePayment, usePaymentCategories, PledgeWithDetails } from '@/hooks/usePayments';
+import { usePledges, useCreatePledge, useUpdatePledge, useRecordPledgePayment, usePaymentCategories, usePledgePayments, PledgeWithDetails } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,7 @@ import {
   Clock,
   HandCoins,
   CreditCard,
+  History,
 } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, addDays } from 'date-fns';
 
@@ -70,7 +71,14 @@ export default function Pledges() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [selectedPledge, setSelectedPledge] = useState<PledgeWithDetails | null>(null);
+
+  // Fetch payments for selected pledge when history dialog is open
+  const { data: pledgePayments = [], isLoading: isLoadingPayments } = usePledgePayments(
+    isHistoryDialogOpen && selectedPledge ? selectedPledge.user_id : null,
+    isHistoryDialogOpen && selectedPledge ? selectedPledge.category_id : null
+  );
 
   // Form state for new pledge
   const [newPledge, setNewPledge] = useState({
@@ -206,6 +214,11 @@ export default function Pledges() {
       description: '',
     });
     setIsPaymentDialogOpen(true);
+  };
+
+  const openHistoryDialog = (pledge: PledgeWithDetails) => {
+    setSelectedPledge(pledge);
+    setIsHistoryDialogOpen(true);
   };
 
   const handleRecordPayment = () => {
@@ -549,11 +562,18 @@ export default function Pledges() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openHistoryDialog(pledge)}>
+                                  <History className="h-4 w-4 mr-2" />
+                                  View Payment History
+                                </DropdownMenuItem>
                                 {pledge.status !== 'fulfilled' && pledge.status !== 'cancelled' && (
-                                  <DropdownMenuItem onClick={() => openPaymentDialog(pledge)}>
-                                    <CreditCard className="h-4 w-4 mr-2" />
-                                    Record Payment
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => openPaymentDialog(pledge)}>
+                                      <CreditCard className="h-4 w-4 mr-2" />
+                                      Record Payment
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => openEditDialog(pledge)}>
@@ -753,6 +773,119 @@ export default function Pledges() {
             >
               {recordPledgePayment.isPending ? 'Recording...' : 'Record Payment'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment History Dialog */}
+      <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Payment History
+            </DialogTitle>
+            <DialogDescription>
+              All payments made towards {selectedPledge && getMemberName(selectedPledge.user_id)}'s pledge
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPledge && (
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2 flex-shrink-0">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Category:</span>
+                <span className="font-medium">{selectedPledge.payment_categories?.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Pledged:</span>
+                <span className="font-medium">{formatCurrency(Number(selectedPledge.amount))}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Paid:</span>
+                <span className="font-medium text-success">{formatCurrency(Number(selectedPledge.fulfilled_amount))}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Remaining:</span>
+                <span className="font-medium text-primary">
+                  {formatCurrency(Math.max(0, Number(selectedPledge.amount) - Number(selectedPledge.fulfilled_amount)))}
+                </span>
+              </div>
+              <div className="pt-2">
+                <Progress 
+                  value={Number(selectedPledge.amount) > 0 ? (Number(selectedPledge.fulfilled_amount) / Number(selectedPledge.amount)) * 100 : 0} 
+                  className="h-2" 
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-auto">
+            {isLoadingPayments ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+              </div>
+            ) : pledgePayments.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <CreditCard className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p>No payments recorded yet</p>
+                <p className="text-sm mt-1">Record a payment to see it here</p>
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pledgePayments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            {format(parseISO(payment.payment_date), 'MMM d, yyyy')}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-success">
+                          {formatCurrency(Number(payment.amount))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {payment.payment_method.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {payment.reference_number || '-'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
+                          {payment.description || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-shrink-0">
+            <Button variant="outline" onClick={() => setIsHistoryDialogOpen(false)}>
+              Close
+            </Button>
+            {selectedPledge && selectedPledge.status !== 'fulfilled' && selectedPledge.status !== 'cancelled' && (
+              <Button onClick={() => {
+                setIsHistoryDialogOpen(false);
+                openPaymentDialog(selectedPledge);
+              }}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Record Payment
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
