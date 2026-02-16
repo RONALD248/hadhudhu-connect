@@ -16,6 +16,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function Install() {
   const { isInstallable, isInstalled, isIOS, promptInstall } = usePWAInstall();
@@ -211,6 +212,30 @@ export default function Install() {
               </Card>
             ))}
           </div>
+        </div>
+
+        {/* QR Code Section */}
+        <div className="max-w-md mx-auto mt-12 text-center">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Scan to Install</CardTitle>
+              <CardDescription>
+                Scan this QR code with your phone's camera to open the install page
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4">
+              <div className="bg-white p-4 rounded-xl">
+                <QRCodeSVG
+                  value="https://sacred-harmony-db.lovable.app/install"
+                  size={180}
+                  level="M"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                sacred-harmony-db.lovable.app/install
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Device Support */}
