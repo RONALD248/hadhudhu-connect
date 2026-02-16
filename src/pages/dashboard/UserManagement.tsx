@@ -250,6 +250,7 @@ export default function UserManagement() {
                   <SelectItem value="treasurer">Treasurer</SelectItem>
                   <SelectItem value="secretary">Secretary</SelectItem>
                   <SelectItem value="pastor">Pastor</SelectItem>
+                  <SelectItem value="elder">Elder</SelectItem>
                   <SelectItem value="member">Member</SelectItem>
                 </SelectContent>
               </Select>

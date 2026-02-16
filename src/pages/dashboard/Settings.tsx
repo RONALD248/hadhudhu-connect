@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   User,
   Bell,
@@ -22,12 +23,18 @@ export default function Settings() {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: '',
   });
 
   const [notifications, setNotifications] = useState({
@@ -40,20 +47,79 @@ export default function Settings() {
   const handleProfileSave = async () => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      updateUser(profileData);
+      // Update profile in database
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: profileData.firstName,
+          last_name: profileData.lastName,
+          phone: profileData.phone || null,
+        })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      updateUser({
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        phone: profileData.phone,
+      });
+
       toast({
         title: 'Profile updated',
         description: 'Your profile has been successfully updated.',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Update failed',
-        description: 'Failed to update profile. Please try again.',
+        description: error.message || 'Failed to update profile. Please try again.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: 'Password mismatch',
+        description: 'New passwords do not match.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast({
+        title: 'Weak password',
+        description: 'Password must be at least 8 characters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (error) throw error;
+
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+      toast({
+        title: 'Password updated',
+        description: 'Your password has been successfully changed.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Password update failed',
+        description: error.message || 'Failed to update password.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPasswordLoading(false);
     }
   };
 
@@ -105,8 +171,8 @@ export default function Settings() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <Button variant="outline" size="sm">Change Photo</Button>
-                  <p className="text-xs text-muted-foreground mt-1">JPG, PNG. Max 2MB</p>
+                  <p className="font-medium">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
 
@@ -139,8 +205,10 @@ export default function Settings() {
                     id="email"
                     type="email"
                     value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    disabled
+                    className="bg-muted"
                   />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
@@ -216,39 +284,39 @@ export default function Settings() {
                   </p>
                   <div className="grid gap-4 max-w-md">
                     <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
-                      <Input id="currentPassword" type="password" />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="newPassword">New Password</Label>
-                      <Input id="newPassword" type="password" />
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        placeholder="Minimum 8 characters"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                      <Input id="confirmPassword" type="password" />
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                      />
                     </div>
-                    <Button className="w-fit">Update Password</Button>
+                    <Button
+                      className="w-fit"
+                      onClick={handlePasswordChange}
+                      disabled={isPasswordLoading || !passwordData.newPassword}
+                    >
+                      {isPasswordLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Password'
+                      )}
+                    </Button>
                   </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="font-medium">Two-Factor Authentication</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Add an extra layer of security to your account
-                  </p>
-                  <Button variant="outline">Enable 2FA</Button>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="font-medium text-destructive">Danger Zone</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Permanently delete your account and all data
-                  </p>
-                  <Button variant="destructive">Delete Account</Button>
                 </div>
               </div>
             </CardContent>

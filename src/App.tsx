@@ -10,6 +10,8 @@ import { InstallPromptBanner } from "@/components/pwa/InstallPromptBanner";
 import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
 
@@ -45,6 +47,8 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
 
             {/* Protected Dashboard Routes */}
             <Route path="/dashboard" element={

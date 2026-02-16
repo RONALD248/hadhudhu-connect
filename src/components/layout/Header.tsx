@@ -36,6 +36,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       treasurer: 'Treasurer',
       secretary: 'Secretary',
       pastor: 'Pastor',
+      elder: 'Elder',
       member: 'Member',
     };
     return labels[role] || role;

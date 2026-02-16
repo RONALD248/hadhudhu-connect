@@ -1,71 +1,27 @@
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { 
   Download,
-  FileText,
-  TrendingUp,
-  Users,
   Wallet,
+  Users,
   Calendar,
   BarChart3,
-  PieChart
+  PieChart,
+  Loader2,
+  TrendingUp,
+  FileText,
 } from 'lucide-react';
+import { usePayments, usePaymentCategories } from '@/hooks/usePayments';
+import { useProfiles } from '@/hooks/useProfiles';
+import { format, startOfMonth, subMonths, parseISO } from 'date-fns';
 
 export default function Reports() {
-  const reportTypes = [
-    {
-      title: 'Financial Summary',
-      description: 'Complete overview of all contributions',
-      icon: Wallet,
-      color: 'bg-primary/10 text-primary',
-    },
-    {
-      title: 'Tithe Report',
-      description: 'Detailed tithe collection report',
-      icon: TrendingUp,
-      color: 'bg-success/10 text-success',
-    },
-    {
-      title: 'Member Contributions',
-      description: 'Individual member contribution history',
-      icon: Users,
-      color: 'bg-secondary/10 text-secondary',
-    },
-    {
-      title: 'Category Breakdown',
-      description: 'Contributions by category',
-      icon: PieChart,
-      color: 'bg-warning/10 text-warning',
-    },
-    {
-      title: 'Monthly Comparison',
-      description: 'Month-over-month analysis',
-      icon: BarChart3,
-      color: 'bg-primary/10 text-primary',
-    },
-    {
-      title: 'Annual Report',
-      description: 'Yearly financial overview',
-      icon: Calendar,
-      color: 'bg-destructive/10 text-destructive',
-    },
-  ];
+  const { data: payments = [], isLoading: paymentsLoading } = usePayments();
+  const { data: categories = [] } = usePaymentCategories();
+  const { data: profiles = [] } = useProfiles();
 
-  const monthlyData = [
-    { month: 'Jan', tithe: 285000, offering: 95200, building: 75000, welfare: 30000 },
-    { month: 'Feb', tithe: 265000, offering: 88000, building: 82000, welfare: 25000 },
-    { month: 'Mar', tithe: 295000, offering: 102000, building: 68000, welfare: 35000 },
-    { month: 'Apr', tithe: 278000, offering: 91000, building: 90000, welfare: 28000 },
-    { month: 'May', tithe: 310000, offering: 98000, building: 85000, welfare: 32000 },
-    { month: 'Jun', tithe: 325000, offering: 105000, building: 95000, welfare: 38000 },
-  ];
+  const currentYear = new Date().getFullYear();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -75,12 +31,94 @@ export default function Reports() {
     }).format(amount);
   };
 
-  const categoryTotals = [
-    { name: 'Tithe', amount: 1758000, percentage: 58.7, color: 'bg-primary' },
-    { name: 'Offering', amount: 579200, percentage: 19.3, color: 'bg-success' },
-    { name: 'Building Fund', amount: 495000, percentage: 16.5, color: 'bg-secondary' },
-    { name: 'Welfare', amount: 188000, percentage: 6.3, color: 'bg-warning' },
-  ];
+  // Calculate monthly data from actual payments
+  const monthlyData = useMemo(() => {
+    const months: { month: string; total: number; byCategory: Record<string, number> }[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = subMonths(new Date(), i);
+      const monthStart = startOfMonth(date);
+      const monthLabel = format(date, 'MMM');
+      const monthStr = format(date, 'yyyy-MM');
+      
+      const monthPayments = payments.filter(p => p.payment_date.startsWith(monthStr));
+      const byCategory: Record<string, number> = {};
+      
+      monthPayments.forEach(p => {
+        const catName = p.payment_categories?.name || 'Other';
+        byCategory[catName] = (byCategory[catName] || 0) + Number(p.amount);
+      });
+      
+      months.push({
+        month: monthLabel,
+        total: monthPayments.reduce((sum, p) => sum + Number(p.amount), 0),
+        byCategory,
+      });
+    }
+    
+    return months;
+  }, [payments]);
+
+  // Calculate category totals
+  const categoryTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    const yearPayments = payments.filter(p => p.payment_date.startsWith(currentYear.toString()));
+    
+    yearPayments.forEach(p => {
+      const catName = p.payment_categories?.name || 'Other';
+      totals[catName] = (totals[catName] || 0) + Number(p.amount);
+    });
+    
+    const grandTotal = Object.values(totals).reduce((sum, v) => sum + v, 0);
+    const colors = ['bg-primary', 'bg-success', 'bg-secondary', 'bg-warning', 'bg-destructive', 'bg-accent'];
+    
+    return Object.entries(totals)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, amount], i) => ({
+        name,
+        amount,
+        percentage: grandTotal > 0 ? (amount / grandTotal) * 100 : 0,
+        color: colors[i % colors.length],
+      }));
+  }, [payments, currentYear]);
+
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    const yearPayments = payments.filter(p => p.payment_date.startsWith(currentYear.toString()));
+    const totalAmount = yearPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const uniqueContributors = new Set(yearPayments.map(p => p.user_id)).size;
+    
+    // Find highest month
+    let highestMonth = '';
+    let highestAmount = 0;
+    monthlyData.forEach(m => {
+      if (m.total > highestAmount) {
+        highestAmount = m.total;
+        highestMonth = m.month;
+      }
+    });
+    
+    const monthsWithData = monthlyData.filter(m => m.total > 0).length;
+    const avgMonthly = monthsWithData > 0 ? totalAmount / monthsWithData : 0;
+    
+    return {
+      avgMonthly,
+      highestMonth: highestMonth ? `${highestMonth} ${currentYear}` : 'N/A',
+      highestAmount,
+      activeContributors: uniqueContributors,
+      totalYTD: totalAmount,
+    };
+  }, [payments, monthlyData, currentYear]);
+
+  const maxMonthlyTotal = Math.max(...monthlyData.map(m => m.total), 1);
+
+  if (paymentsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -88,47 +126,8 @@ export default function Reports() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="page-header">
           <h1 className="page-title">Reports</h1>
-          <p className="page-subtitle">Generate and view financial reports</p>
+          <p className="page-subtitle">Financial reports from actual contribution data</p>
         </div>
-
-        <div className="flex gap-2">
-          <Select defaultValue="2024">
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2023">2023</SelectItem>
-              <SelectItem value="2022">2022</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export All
-          </Button>
-        </div>
-      </div>
-
-      {/* Report Types Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {reportTypes.map((report, index) => (
-          <Card key={index} className="cursor-pointer transition-all hover:shadow-card-hover hover:border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className={`h-12 w-12 rounded-lg ${report.color} flex items-center justify-center`}>
-                  <report.icon className="h-6 w-6" />
-                </div>
-                <Button variant="ghost" size="sm">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="mt-4">
-                <h3 className="font-semibold text-foreground">{report.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{report.description}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       {/* Summary Cards */}
@@ -137,60 +136,33 @@ export default function Reports() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Monthly Collection Trend</CardTitle>
-            <CardDescription>Jan - Jun 2024</CardDescription>
+            <CardDescription>Last 6 months</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {monthlyData.map((month, index) => {
-                const total = month.tithe + month.offering + month.building + month.welfare;
-                return (
+            {payments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <BarChart3 className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground">No payment data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Record contributions to see trends here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {monthlyData.map((month, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium">{month.month}</span>
-                      <span className="text-muted-foreground">{formatCurrency(total)}</span>
+                      <span className="text-muted-foreground">{formatCurrency(month.total)}</span>
                     </div>
-                    <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
+                    <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
                       <div 
-                        className="h-full bg-primary transition-all"
-                        style={{ width: `${(month.tithe / total) * 100}%` }}
-                      />
-                      <div 
-                        className="h-full bg-success transition-all"
-                        style={{ width: `${(month.offering / total) * 100}%` }}
-                      />
-                      <div 
-                        className="h-full bg-secondary transition-all"
-                        style={{ width: `${(month.building / total) * 100}%` }}
-                      />
-                      <div 
-                        className="h-full bg-warning transition-all"
-                        style={{ width: `${(month.welfare / total) * 100}%` }}
+                        className="h-full bg-primary transition-all rounded-full"
+                        style={{ width: `${(month.total / maxMonthlyTotal) * 100}%` }}
                       />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            
-            {/* Legend */}
-            <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-primary" />
-                <span className="text-xs text-muted-foreground">Tithe</span>
+                ))}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-success" />
-                <span className="text-xs text-muted-foreground">Offering</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-secondary" />
-                <span className="text-xs text-muted-foreground">Building</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-warning" />
-                <span className="text-xs text-muted-foreground">Welfare</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -198,40 +170,50 @@ export default function Reports() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Category Distribution</CardTitle>
-            <CardDescription>Year-to-date breakdown</CardDescription>
+            <CardDescription>{currentYear} year-to-date breakdown</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {categoryTotals.map((category, index) => (
-                <div key={index} className="space-y-2">
+            {categoryTotals.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <PieChart className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground">No category data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Contributions will be broken down by category</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-6">
+                  {categoryTotals.map((category, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-3 w-3 rounded-full ${category.color}`} />
+                          <span className="font-medium">{category.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-semibold">{formatCurrency(category.amount)}</span>
+                          <span className="text-sm text-muted-foreground ml-2">({category.percentage.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted">
+                        <div 
+                          className={`h-2 rounded-full ${category.color} transition-all`}
+                          style={{ width: `${category.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 pt-4 border-t">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`h-3 w-3 rounded-full ${category.color}`} />
-                      <span className="font-medium">{category.name}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-semibold">{formatCurrency(category.amount)}</span>
-                      <span className="text-sm text-muted-foreground ml-2">({category.percentage}%)</span>
-                    </div>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-muted">
-                    <div 
-                      className={`h-2 rounded-full ${category.color} transition-all`}
-                      style={{ width: `${category.percentage}%` }}
-                    />
+                    <span className="text-lg font-semibold">Total YTD</span>
+                    <span className="text-xl font-bold text-primary">
+                      {formatCurrency(categoryTotals.reduce((sum, cat) => sum + cat.amount, 0))}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-6 pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-semibold">Total YTD</span>
-                <span className="text-xl font-bold text-primary">
-                  {formatCurrency(categoryTotals.reduce((sum, cat) => sum + cat.amount, 0))}
-                </span>
-              </div>
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -244,19 +226,14 @@ export default function Reports() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'Average Monthly Collection', value: 'KES 503,367', change: '+12.5%', positive: true },
-              { label: 'Highest Collection Month', value: 'June 2024', subtext: 'KES 563,000' },
-              { label: 'Active Contributors', value: '186', change: '+8 this month', positive: true },
-              { label: 'Pledge Fulfillment Rate', value: '78.5%', change: '-2.1%', positive: false },
+              { label: 'Average Monthly Collection', value: formatCurrency(metrics.avgMonthly) },
+              { label: 'Highest Collection Month', value: metrics.highestMonth, subtext: metrics.highestAmount > 0 ? formatCurrency(metrics.highestAmount) : undefined },
+              { label: 'Active Contributors', value: metrics.activeContributors.toString() },
+              { label: 'Total Members', value: profiles.length.toString() },
             ].map((metric, index) => (
               <div key={index} className="p-4 rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">{metric.label}</p>
                 <p className="text-xl font-bold mt-1">{metric.value}</p>
-                {metric.change && (
-                  <p className={`text-sm mt-1 ${metric.positive ? 'text-success' : 'text-destructive'}`}>
-                    {metric.change}
-                  </p>
-                )}
                 {metric.subtext && (
                   <p className="text-sm text-muted-foreground mt-1">{metric.subtext}</p>
                 )}
