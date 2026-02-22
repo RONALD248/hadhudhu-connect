@@ -64,23 +64,23 @@ export default function Landing() {
               <Church className="h-6 w-6 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-foreground">Hadhudhu SDA</span>
-              <span className="text-[10px] text-muted-foreground">Church Management System</span>
+              <span className="font-bold text-foreground text-sm sm:text-base">Hadhudhu SDA</span>
+              <span className="text-[10px] text-muted-foreground hidden sm:block">Church Management System</span>
             </div>
           </Link>
           
-          <div className="flex items-center gap-4">
-            <Link to="/install">
-              <Button variant="ghost" className="gap-2">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link to="/install" className="hidden sm:block">
+              <Button variant="ghost" className="gap-2" size="sm">
                 <Download className="h-4 w-4" />
-                Install App
+                <span className="hidden md:inline">Install App</span>
               </Button>
             </Link>
             <Link to="/auth/login">
-              <Button variant="ghost">Sign In</Button>
+              <Button variant="ghost" size="sm">Sign In</Button>
             </Link>
             <Link to="/auth/register">
-              <Button variant="gold">Get Started</Button>
+              <Button variant="gold" size="sm">Get Started</Button>
             </Link>
           </div>
         </div>
@@ -194,17 +194,18 @@ export default function Landing() {
               <div className="grid gap-4">
                 {[
                   { role: 'Administrator', description: 'Full system access, user management, and configuration' },
+                  { role: 'Elder', description: 'Church oversight, member stats, and contribution summaries' },
                   { role: 'Treasurer', description: 'Financial records, contributions, and payment tracking' },
                   { role: 'Secretary', description: 'Member registration, records management, and reports' },
                   { role: 'Pastor', description: 'Member oversight, spiritual records, and announcements' },
                   { role: 'Member', description: 'Personal contribution history and profile management' },
                 ].map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-success" />
+                      <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
                       <span className="font-semibold text-foreground">{item.role}</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{item.description}</span>
+                    <span className="text-sm text-muted-foreground ml-8 sm:ml-0">{item.description}</span>
                   </div>
                 ))}
               </div>
