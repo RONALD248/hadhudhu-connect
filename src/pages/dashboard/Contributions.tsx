@@ -51,6 +51,7 @@ import { PaymentInstructions } from '@/components/contributions/PaymentInstructi
 
 export default function Contributions() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<PaymentWithDetails | null>(null);
@@ -72,8 +73,12 @@ export default function Contributions() {
 
   const filteredPayments = payments?.filter(payment => {
     const categoryName = payment.payment_categories?.name || '';
-    return categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const memberName = payment.profiles ? `${payment.profiles.first_name} ${payment.profiles.last_name}` : '';
+    const matchesSearch = categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      memberName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       payment.reference_number?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || payment.category_id === filterCategory;
+    return matchesSearch && matchesCategory;
   }) || [];
 
   const getMethodIcon = (method: string) => {
@@ -133,7 +138,7 @@ export default function Contributions() {
   };
 
   const canRecordPayments = user?.role === 'super_admin' || user?.role === 'treasurer';
-  const canViewPayments = user?.role === 'super_admin' || user?.role === 'treasurer' || user?.role === 'secretary' || user?.role === 'pastor';
+  const canViewPayments = user?.role === 'super_admin' || user?.role === 'treasurer' || user?.role === 'secretary' || user?.role === 'pastor' || user?.role === 'elder';
 
   // Calculate stats
   const today = new Date().toISOString().split('T')[0];
@@ -323,7 +328,7 @@ export default function Contributions() {
                 />
               </div>
               <div className="flex gap-2">
-                <Select>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
                   <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -365,6 +370,7 @@ export default function Contributions() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Member</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead className="hidden md:table-cell">Method</TableHead>
@@ -376,6 +382,9 @@ export default function Contributions() {
                 <TableBody>
                   {filteredPayments.map((payment) => (
                     <TableRow key={payment.id}>
+                      <TableCell className="font-medium">
+                        {payment.profiles ? `${payment.profiles.first_name} ${payment.profiles.last_name}` : 'Unknown'}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">{payment.payment_categories?.name || 'Unknown'}</Badge>
                       </TableCell>

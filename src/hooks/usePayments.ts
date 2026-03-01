@@ -34,10 +34,10 @@ export interface PaymentWithDetails extends Payment {
   profiles?: {
     first_name: string;
     last_name: string;
-  };
+  } | null;
   payment_categories?: {
     name: string;
-  };
+  } | null;
 }
 
 export interface PaymentSetting {
@@ -58,6 +58,7 @@ export function usePayments() {
         .from('payments')
         .select(`
           *,
+          profiles:user_id (first_name, last_name),
           payment_categories:category_id (name)
         `)
         .order('payment_date', { ascending: false });
