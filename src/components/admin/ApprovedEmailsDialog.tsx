@@ -91,7 +91,7 @@ export function ApprovedEmailsDialog() {
     }
   };
 
-  const secretaryEmails = approvedEmails?.filter(e => e.role === 'secretary') || [];
+  const allApprovedEmails = approvedEmails || [];
 
   return (
     <>
@@ -108,9 +108,9 @@ export function ApprovedEmailsDialog() {
               <Shield className="h-5 w-5 text-primary" />
               Approved Church Emails
             </DialogTitle>
-            <DialogDescription>
-              Control which email addresses can be assigned to sensitive roles like Secretary.
-              Only users with approved emails can be given the Secretary role.
+           <DialogDescription>
+              Pre-approve email addresses for church roles. When someone registers with an approved email,
+              they automatically receive the assigned role. Removing an approved email reverts the user to Member.
             </DialogDescription>
           </DialogHeader>
 
@@ -121,8 +121,9 @@ export function ApprovedEmailsDialog() {
               <div className="text-sm">
                 <p className="font-medium text-warning">Security Notice</p>
                 <p className="text-muted-foreground mt-1">
-                  The Secretary role has access to all member personal data. Only add official church email addresses here.
-                  You can use exact emails (e.g., secretary@church.org) or patterns (e.g., %@church.org for all church domain emails).
+                  Add official church email addresses here with their assigned roles. When these emails register,
+                  they'll automatically get the assigned role. Removing an entry reverts the user to Member (or their next matching role).
+                  Use exact emails (e.g., treasurer@church.org) or patterns (e.g., %@church.org).
                 </p>
               </div>
             </div>
@@ -152,11 +153,15 @@ export function ApprovedEmailsDialog() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                      <SelectItem value="treasurer">Treasurer</SelectItem>
                       <SelectItem value="secretary">Secretary</SelectItem>
+                      <SelectItem value="pastor">Pastor</SelectItem>
+                      <SelectItem value="elder">Elder</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Currently only Secretary role requires email approval
+                    Role will be auto-assigned when this email registers
                   </p>
                 </div>
               </div>
@@ -188,18 +193,18 @@ export function ApprovedEmailsDialog() {
 
             {/* Approved Emails List */}
             <div className="space-y-3">
-              <h3 className="font-medium">Approved Secretary Emails ({secretaryEmails.length})</h3>
+              <h3 className="font-medium">Approved Emails ({allApprovedEmails.length})</h3>
               
               {isLoading ? (
                 <div className="flex items-center justify-center p-8">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
-              ) : secretaryEmails.length === 0 ? (
+              ) : allApprovedEmails.length === 0 ? (
                 <div className="text-center p-8 border rounded-lg bg-muted/20">
                   <Mail className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
                   <p className="text-muted-foreground">No approved emails yet</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Add church email addresses above to restrict Secretary role assignment
+                    Add church email addresses above to auto-assign roles on registration
                   </p>
                 </div>
               ) : (
@@ -213,7 +218,7 @@ export function ApprovedEmailsDialog() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {secretaryEmails.map((email) => (
+                    {allApprovedEmails.map((email) => (
                       <TableRow key={email.id}>
                         <TableCell className="font-mono text-sm">
                           {email.email_pattern}
