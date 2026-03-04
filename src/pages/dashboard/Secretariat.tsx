@@ -75,6 +75,9 @@ export default function Secretariat() {
     occupation: '',
     baptism_date: '',
     membership_number: '',
+    date_of_birth: '',
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
   });
   
   const { data: profiles, isLoading: profilesLoading } = useProfiles();
@@ -95,10 +98,10 @@ export default function Secretariat() {
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.first_name || !formData.last_name || !formData.phone) {
+    if (!formData.first_name || !formData.last_name) {
       toast({
         title: 'Missing required fields',
-        description: 'Please fill in first name, last name, and phone number.',
+        description: 'Please fill in first name and last name.',
         variant: 'destructive',
       });
       return;
@@ -108,7 +111,7 @@ export default function Secretariat() {
       await createProfile.mutateAsync({
         first_name: formData.first_name,
         last_name: formData.last_name,
-        phone: formData.phone,
+        phone: formData.phone || null,
         gender: formData.gender || null,
         marital_status: formData.marital_status || null,
         address: formData.address || null,
@@ -128,6 +131,9 @@ export default function Secretariat() {
         occupation: '',
         baptism_date: '',
         membership_number: '',
+        date_of_birth: '',
+        emergency_contact_name: '',
+        emergency_contact_phone: '',
       });
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -218,14 +224,13 @@ export default function Secretariat() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Label htmlFor="phone">Phone Number</Label>
                   <Input 
                     id="phone" 
                     type="tel" 
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     placeholder="+254 7XX XXX XXX" 
-                    required 
                   />
                 </div>
                 <div className="space-y-2">
@@ -274,6 +279,15 @@ export default function Secretariat() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="date_of_birth">Date of Birth</Label>
+                  <Input 
+                    id="date_of_birth" 
+                    type="date" 
+                    value={formData.date_of_birth}
+                    onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="baptism_date">Baptism Date</Label>
                   <Input 
                     id="baptism_date" 
@@ -282,6 +296,8 @@ export default function Secretariat() {
                     onChange={(e) => setFormData({...formData, baptism_date: e.target.value})}
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="occupation">Occupation</Label>
                   <Input 
@@ -291,15 +307,36 @@ export default function Secretariat() {
                     placeholder="Teacher, Farmer, etc."
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input 
+                    id="address" 
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    placeholder="Physical address"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input 
-                  id="address" 
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  placeholder="Physical address"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emergency_contact_name">Emergency Contact Name</Label>
+                  <Input 
+                    id="emergency_contact_name" 
+                    value={formData.emergency_contact_name}
+                    onChange={(e) => setFormData({...formData, emergency_contact_name: e.target.value})}
+                    placeholder="Contact person"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emergency_contact_phone">Emergency Contact Phone</Label>
+                  <Input 
+                    id="emergency_contact_phone" 
+                    type="tel"
+                    value={formData.emergency_contact_phone}
+                    onChange={(e) => setFormData({...formData, emergency_contact_phone: e.target.value})}
+                    placeholder="+254 7XX XXX XXX"
+                  />
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>

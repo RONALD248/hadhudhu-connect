@@ -112,6 +112,9 @@ export function useCreateProfile() {
       marital_status?: string | null;
       occupation?: string | null;
       baptism_date?: string | null;
+      date_of_birth?: string | null;
+      emergency_contact_name?: string | null;
+      emergency_contact_phone?: string | null;
       membership_number?: string | null;
       is_active?: boolean;
     }) => {
