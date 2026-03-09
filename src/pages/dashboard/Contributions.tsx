@@ -71,7 +71,11 @@ export default function Contributions() {
   const { data: payments, isLoading: paymentsLoading } = usePayments();
   const { data: categories } = usePaymentCategories();
   const { data: profiles } = useProfiles();
+  const { data: confirmations } = usePaymentConfirmations();
   const createPayment = useCreatePayment();
+
+  const getConfirmation = (paymentId: string) => 
+    confirmations?.find(c => c.payment_id === paymentId) || null;
 
   const filteredPayments = payments?.filter(payment => {
     const categoryName = payment.payment_categories?.name || '';
