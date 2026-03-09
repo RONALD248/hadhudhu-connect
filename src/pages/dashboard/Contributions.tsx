@@ -405,19 +405,25 @@ export default function Contributions() {
                       <TableCell className="hidden lg:table-cell font-mono text-sm text-muted-foreground">
                         {payment.reference_number || '-'}
                       </TableCell>
-                      <TableCell>{payment.payment_date}</TableCell>
-                      {canRecordPayments && (
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingPayment(payment)}
-                            title="Edit payment"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      )}
+                       <TableCell>{payment.payment_date}</TableCell>
+                       <TableCell>
+                         <PaymentConfirmationActions
+                           paymentId={payment.id}
+                           confirmation={getConfirmation(payment.id)}
+                         />
+                       </TableCell>
+                       {canRecordPayments && (
+                         <TableCell>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             onClick={() => setEditingPayment(payment)}
+                             title="Edit payment"
+                           >
+                             <Pencil className="h-4 w-4" />
+                           </Button>
+                         </TableCell>
+                       )}
                     </TableRow>
                   ))}
                 </TableBody>
