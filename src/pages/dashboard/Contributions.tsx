@@ -381,8 +381,9 @@ export default function Contributions() {
                     <TableHead>Amount</TableHead>
                     <TableHead className="hidden md:table-cell">Method</TableHead>
                     <TableHead className="hidden lg:table-cell">Reference</TableHead>
-                    <TableHead>Date</TableHead>
-                    {canRecordPayments && <TableHead className="w-[80px]">Actions</TableHead>}
+                     <TableHead>Date</TableHead>
+                     <TableHead>Status</TableHead>
+                     {canRecordPayments && <TableHead className="w-[80px]">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
