@@ -45,9 +45,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePayments, usePaymentCategories, useCreatePayment, PaymentWithDetails } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
+import { usePaymentConfirmations } from '@/hooks/usePaymentConfirmations';
 import { PaymentSettingsDialog } from '@/components/contributions/PaymentSettingsDialog';
 import { EditPaymentDialog } from '@/components/contributions/EditPaymentDialog';
 import { PaymentInstructions } from '@/components/contributions/PaymentInstructions';
+import { PaymentConfirmationActions } from '@/components/contributions/PaymentConfirmationActions';
 
 export default function Contributions() {
   const [searchQuery, setSearchQuery] = useState('');
