@@ -297,6 +297,59 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_confirmations: {
+        Row: {
+          created_at: string
+          id: string
+          payment_id: string
+          receipt_number: string | null
+          receipt_sent: boolean
+          receipt_sent_at: string | null
+          secretary_confirmed_at: string | null
+          secretary_user_id: string | null
+          status: string
+          treasurer_confirmed_at: string | null
+          treasurer_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payment_id: string
+          receipt_number?: string | null
+          receipt_sent?: boolean
+          receipt_sent_at?: string | null
+          secretary_confirmed_at?: string | null
+          secretary_user_id?: string | null
+          status?: string
+          treasurer_confirmed_at?: string | null
+          treasurer_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payment_id?: string
+          receipt_number?: string | null
+          receipt_sent?: boolean
+          receipt_sent_at?: string | null
+          secretary_confirmed_at?: string | null
+          secretary_user_id?: string | null
+          status?: string
+          treasurer_confirmed_at?: string | null
+          treasurer_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_confirmations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: true
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_settings: {
         Row: {
           created_at: string | null

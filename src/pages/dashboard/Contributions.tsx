@@ -45,9 +45,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePayments, usePaymentCategories, useCreatePayment, PaymentWithDetails } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
+import { usePaymentConfirmations } from '@/hooks/usePaymentConfirmations';
 import { PaymentSettingsDialog } from '@/components/contributions/PaymentSettingsDialog';
 import { EditPaymentDialog } from '@/components/contributions/EditPaymentDialog';
 import { PaymentInstructions } from '@/components/contributions/PaymentInstructions';
+import { PaymentConfirmationActions } from '@/components/contributions/PaymentConfirmationActions';
 
 export default function Contributions() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,7 +71,11 @@ export default function Contributions() {
   const { data: payments, isLoading: paymentsLoading } = usePayments();
   const { data: categories } = usePaymentCategories();
   const { data: profiles } = useProfiles();
+  const { data: confirmations } = usePaymentConfirmations();
   const createPayment = useCreatePayment();
+
+  const getConfirmation = (paymentId: string) => 
+    confirmations?.find(c => c.payment_id === paymentId) || null;
 
   const filteredPayments = payments?.filter(payment => {
     const categoryName = payment.payment_categories?.name || '';
@@ -375,8 +381,9 @@ export default function Contributions() {
                     <TableHead>Amount</TableHead>
                     <TableHead className="hidden md:table-cell">Method</TableHead>
                     <TableHead className="hidden lg:table-cell">Reference</TableHead>
-                    <TableHead>Date</TableHead>
-                    {canRecordPayments && <TableHead className="w-[80px]">Actions</TableHead>}
+                     <TableHead>Date</TableHead>
+                     <TableHead>Status</TableHead>
+                     {canRecordPayments && <TableHead className="w-[80px]">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -398,19 +405,25 @@ export default function Contributions() {
                       <TableCell className="hidden lg:table-cell font-mono text-sm text-muted-foreground">
                         {payment.reference_number || '-'}
                       </TableCell>
-                      <TableCell>{payment.payment_date}</TableCell>
-                      {canRecordPayments && (
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingPayment(payment)}
-                            title="Edit payment"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      )}
+                       <TableCell>{payment.payment_date}</TableCell>
+                       <TableCell>
+                         <PaymentConfirmationActions
+                           paymentId={payment.id}
+                           confirmation={getConfirmation(payment.id)}
+                         />
+                       </TableCell>
+                       {canRecordPayments && (
+                         <TableCell>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             onClick={() => setEditingPayment(payment)}
+                             title="Edit payment"
+                           >
+                             <Pencil className="h-4 w-4" />
+                           </Button>
+                         </TableCell>
+                       )}
                     </TableRow>
                   ))}
                 </TableBody>
