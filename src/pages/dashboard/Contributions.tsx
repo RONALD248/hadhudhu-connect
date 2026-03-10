@@ -50,6 +50,7 @@ import { PaymentSettingsDialog } from '@/components/contributions/PaymentSetting
 import { EditPaymentDialog } from '@/components/contributions/EditPaymentDialog';
 import { PaymentInstructions } from '@/components/contributions/PaymentInstructions';
 import { PaymentConfirmationActions } from '@/components/contributions/PaymentConfirmationActions';
+import { MemberReceipts } from '@/components/contributions/MemberReceipts';
 
 export default function Contributions() {
   const [searchQuery, setSearchQuery] = useState('');
