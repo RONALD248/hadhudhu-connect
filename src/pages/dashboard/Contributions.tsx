@@ -50,6 +50,7 @@ import { PaymentSettingsDialog } from '@/components/contributions/PaymentSetting
 import { EditPaymentDialog } from '@/components/contributions/EditPaymentDialog';
 import { PaymentInstructions } from '@/components/contributions/PaymentInstructions';
 import { PaymentConfirmationActions } from '@/components/contributions/PaymentConfirmationActions';
+import { MemberReceipts } from '@/components/contributions/MemberReceipts';
 
 export default function Contributions() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -433,18 +434,21 @@ export default function Contributions() {
         </Card>
       )}
 
-      {/* Non-staff member view */}
+      {/* Member receipts section - visible to all authenticated users */}
       {!canViewPayments && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground">
-              Use the payment details above to make your contribution.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Contact the treasurer if you have questions about your payments.
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          <MemberReceipts />
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">
+                Use the payment details above to make your contribution.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Contact the treasurer if you have questions about your payments.
+              </p>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Dialogs */}

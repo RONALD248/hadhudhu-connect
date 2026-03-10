@@ -94,36 +94,31 @@ export function useSecretaryReview() {
 
   return useMutation({
     mutationFn: async ({ paymentId, userId }: { paymentId: string; userId: string }) => {
+      const receiptNumber = `RCT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      
       const { data, error } = await supabase
         .from('payment_confirmations')
         .update({
           secretary_user_id: userId,
           secretary_confirmed_at: new Date().toISOString(),
           status: 'confirmed',
+          receipt_number: receiptNumber,
+          receipt_sent: true,
+          receipt_sent_at: new Date().toISOString(),
         })
         .eq('payment_id', paymentId)
         .select()
         .single();
 
       if (error) throw error;
-
-      // Trigger receipt email via edge function
-      const { error: fnError } = await supabase.functions.invoke('send-receipt-email', {
-        body: { payment_id: paymentId },
-      });
-
-      if (fnError) {
-        console.error('Receipt email error:', fnError);
-        // Don't fail the whole operation
-      }
-
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment_confirmations'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
       toast({
-        title: 'Payment Verified & Receipt Sent',
-        description: 'The receipt has been emailed to the member.',
+        title: 'Payment Verified ✅',
+        description: 'Receipt is now available for the member to download.',
       });
     },
     onError: (error: Error) => {
