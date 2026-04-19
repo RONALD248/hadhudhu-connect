@@ -221,3 +221,228 @@ export function downloadReceiptPDF(data: ReceiptData) {
   const doc = generateReceiptPDF(data);
   doc.save(`receipt-${data.receiptNumber}.pdf`);
 }
+
+interface CombinedReceiptsData {
+  memberName: string;
+  receipts: ReceiptData[];
+}
+
+export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceiptsData) {
+  if (receipts.length === 0) return;
+
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const centerX = pageWidth / 2;
+
+  // === COVER PAGE ===
+  doc.setFillColor(0, 68, 124);
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  doc.setFillColor(198, 146, 20);
+  doc.rect(0, 90, pageWidth, 4, 'F');
+  doc.rect(0, 150, pageWidth, 4, 'F');
+
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('HADHUDHU SDA CHURCH', centerX, 70, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(198, 146, 20);
+  doc.text('Seventh-day Adventist Church', centerX, 82, { align: 'center' });
+
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('CONSOLIDATED RECEIPTS REPORT', centerX, 120, { align: 'center' });
+
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(220, 230, 245);
+  doc.text(`Prepared for: ${memberName}`, centerX, 175, { align: 'center' });
+
+  const totalAmount = receipts.reduce((sum, r) => sum + r.amount, 0);
+  doc.setFontSize(11);
+  doc.text(`${receipts.length} verified receipt${receipts.length === 1 ? '' : 's'}`, centerX, 188, { align: 'center' });
+  doc.text(`Total: KES ${totalAmount.toLocaleString('en-KE')}`, centerX, 198, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(170, 184, 204);
+  doc.text(
+    `Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+    centerX,
+    pageHeight - 30,
+    { align: 'center' }
+  );
+
+  // === SUMMARY PAGE ===
+  doc.addPage();
+  let y = 20;
+
+  doc.setFillColor(0, 68, 124);
+  doc.rect(0, 0, pageWidth, 30, 'F');
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('Summary of Payments', centerX, 20, { align: 'center' });
+
+  y = 45;
+  autoTable(doc, {
+    startY: y,
+    head: [['#', 'Receipt No.', 'Date', 'Category', 'Method', 'Amount (KES)']],
+    body: receipts.map((r, i) => [
+      String(i + 1),
+      r.receiptNumber,
+      new Date(r.paymentDate).toLocaleDateString('en-GB'),
+      r.categoryName,
+      r.paymentMethod.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      r.amount.toLocaleString('en-KE'),
+    ]),
+    foot: [['', '', '', '', 'TOTAL', totalAmount.toLocaleString('en-KE')]],
+    theme: 'striped',
+    headStyles: { fillColor: [0, 68, 124], textColor: [255, 255, 255], fontStyle: 'bold' },
+    footStyles: { fillColor: [240, 247, 240], textColor: [26, 124, 62], fontStyle: 'bold' },
+    styles: { fontSize: 10, cellPadding: 5 },
+    margin: { left: 15, right: 15 },
+  });
+
+  // === INDIVIDUAL RECEIPTS ===
+  receipts.forEach((receipt, idx) => {
+    doc.addPage();
+
+    // Reuse the single-receipt layout (mini-version inline to avoid jsPDF instance copy)
+    const r = receipt;
+    let yy = 15;
+
+    doc.setFillColor(0, 68, 124);
+    doc.rect(0, 0, pageWidth, 52, 'F');
+    doc.setFillColor(198, 146, 20);
+    doc.rect(0, 52, pageWidth, 4, 'F');
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text('HADHUDHU SDA CHURCH', centerX, yy + 8, { align: 'center' });
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(198, 146, 20);
+    doc.text('Seventh-day Adventist Church', centerX, yy + 17, { align: 'center' });
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`RECEIPT ${idx + 1} OF ${receipts.length}`, centerX, yy + 30, { align: 'center' });
+
+    yy = 64;
+
+    doc.setTextColor(0, 68, 124);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Receipt No: ${r.receiptNumber}`, 20, yy);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      new Date(r.paymentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      pageWidth - 20,
+      yy,
+      { align: 'right' }
+    );
+    yy += 10;
+
+    doc.setDrawColor(198, 146, 20);
+    doc.line(20, yy, pageWidth - 20, yy);
+    yy += 8;
+
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Received from:', 20, yy);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(0, 68, 124);
+    doc.text(r.memberName, 20, yy + 7);
+    yy += 18;
+
+    const formattedAmount = `KES ${r.amount.toLocaleString('en-KE')}`;
+    const tableBody: string[][] = [
+      ['Payment Category', `${r.categoryName}${r.categoryCode ? ` (${r.categoryCode})` : ''}`],
+      ['Amount Paid', formattedAmount],
+      ['Payment Method', r.paymentMethod.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())],
+      ['Reference Number', r.referenceNumber || 'N/A'],
+    ];
+    if (r.description) tableBody.push(['Description', r.description]);
+
+    autoTable(doc, {
+      startY: yy,
+      body: tableBody,
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: { top: 5, bottom: 5, left: 12, right: 12 } },
+      columnStyles: {
+        0: { fontStyle: 'bold', textColor: [100, 100, 100], cellWidth: 55 },
+        1: { textColor: [30, 30, 30] },
+      },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      margin: { left: 20, right: 20 },
+    });
+
+    yy = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+    doc.setFillColor(240, 247, 240);
+    doc.setDrawColor(26, 124, 62);
+    doc.roundedRect(20, yy, pageWidth - 40, 24, 4, 4, 'FD');
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(26, 124, 62);
+    doc.text('Total Amount:', 30, yy + 14);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(formattedAmount, pageWidth - 30, yy + 14, { align: 'right' });
+    yy += 32;
+
+    doc.setFillColor(245, 247, 255);
+    doc.setDrawColor(0, 68, 124);
+    doc.roundedRect(20, yy, pageWidth - 40, 36, 4, 4, 'FD');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 68, 124);
+    doc.text('Verified By:', 30, yy + 9);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Treasurer', 30, yy + 18);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 30, 30);
+    doc.text(r.treasurerName, 30, yy + 25);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Secretary', centerX + 10, yy + 18);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 30, 30);
+    doc.text(r.secretaryName, centerX + 10, yy + 25);
+
+    // Footer
+    doc.setFillColor(0, 68, 124);
+    doc.rect(0, pageHeight - 16, pageWidth, 16, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(170, 184, 204);
+    doc.text(
+      `Hadhudhu SDA Church  •  Page ${idx + 3} of ${receipts.length + 2}`,
+      centerX,
+      pageHeight - 6,
+      { align: 'center' }
+    );
+  });
+
+  const safeName = memberName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  doc.save(`all-receipts-${safeName}-${new Date().toISOString().split('T')[0]}.pdf`);
+}
