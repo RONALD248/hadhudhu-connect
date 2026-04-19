@@ -2,12 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, FileText, Loader2 } from 'lucide-react';
+import { Download, FileText, Loader2, FileDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePayments, usePaymentCategories } from '@/hooks/usePayments';
 import { usePaymentConfirmations } from '@/hooks/usePaymentConfirmations';
 import { useProfiles } from '@/hooks/useProfiles';
-import { downloadReceiptPDF } from '@/lib/receiptPdf';
+import { downloadReceiptPDF, downloadAllReceiptsPDF } from '@/lib/receiptPdf';
 
 export function MemberReceipts() {
   const { user } = useAuth();
