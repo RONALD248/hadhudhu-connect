@@ -60,6 +60,42 @@ export function MemberReceipts() {
     });
   };
 
+  const buildReceiptData = (paymentId: string) => {
+    const payment = payments?.find(p => p.id === paymentId);
+    const confirmation = getConfirmation(paymentId);
+    if (!payment || !confirmation) return null;
+    const memberName = payment.profiles
+      ? `${payment.profiles.first_name} ${payment.profiles.last_name}`
+      : 'Member';
+    const category = categories?.find(c => c.id === payment.category_id);
+    return {
+      receiptNumber: confirmation.receipt_number || `RCT-${Date.now()}`,
+      memberName,
+      amount: Number(payment.amount),
+      paymentDate: payment.payment_date,
+      paymentMethod: payment.payment_method,
+      referenceNumber: payment.reference_number,
+      categoryName: payment.payment_categories?.name || 'General',
+      categoryCode: category?.code || '',
+      description: payment.description,
+      treasurerName: getProfileName(confirmation.treasurer_user_id),
+      secretaryName: getProfileName(confirmation.secretary_user_id),
+      treasurerConfirmedAt: confirmation.treasurer_confirmed_at,
+      secretaryConfirmedAt: confirmation.secretary_confirmed_at,
+    };
+  };
+
+  const handleDownloadAll = () => {
+    const allReceipts = confirmedPayments
+      .map(p => buildReceiptData(p.id))
+      .filter((r): r is NonNullable<ReturnType<typeof buildReceiptData>> => r !== null);
+    if (allReceipts.length === 0) return;
+    downloadAllReceiptsPDF({
+      memberName: allReceipts[0].memberName,
+      receipts: allReceipts,
+    });
+  };
+
   const formatAmount = (amount: number) =>
     new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
 
