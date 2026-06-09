@@ -1,18 +1,22 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayments, usePaymentCategories, usePledges } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
 import { usePaymentConfirmations } from '@/hooks/usePaymentConfirmations';
 import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
 import { CategoryBreakdownChart } from '@/components/charts/CategoryBreakdownChart';
 import { exportDashboardReport } from '@/lib/pdfExport';
-import { 
-  Wallet, 
-  TrendingUp, 
-  CreditCard, 
+import {
+  Wallet,
+  TrendingUp,
+  CreditCard,
   Plus,
   PieChart,
   Users,
@@ -22,6 +26,8 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Search,
+  X,
 } from 'lucide-react';
 import { format, startOfMonth, startOfYear, subMonths, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
