@@ -607,6 +607,28 @@ export type Database = {
       }
     }
     Functions: {
+      get_my_confirmed_receipts: {
+        Args: never
+        Returns: {
+          amount: number
+          category_code: string
+          category_name: string
+          description: string
+          member_first_name: string
+          member_last_name: string
+          payment_date: string
+          payment_id: string
+          payment_method: string
+          receipt_number: string
+          reference_number: string
+          secretary_confirmed_at: string
+          secretary_first_name: string
+          secretary_last_name: string
+          treasurer_confirmed_at: string
+          treasurer_first_name: string
+          treasurer_last_name: string
+        }[]
+      }
       get_profiles_for_secretary: {
         Args: never
         Returns: {
