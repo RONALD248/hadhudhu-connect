@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { usePayments, usePaymentCategories, usePledges } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
+import { usePaymentConfirmations } from '@/hooks/usePaymentConfirmations';
 import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
 import { CategoryBreakdownChart } from '@/components/charts/CategoryBreakdownChart';
 import { exportDashboardReport } from '@/lib/pdfExport';
