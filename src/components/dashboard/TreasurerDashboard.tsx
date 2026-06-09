@@ -310,7 +310,7 @@ export function TreasurerDashboard() {
           </CardTitle>
           <CardDescription>Track confirmations from recording to receipt issuance</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <Link to="/dashboard/contributions" className="block">
               <div className="p-4 rounded-lg border bg-amber-50 hover:bg-amber-100 transition-colors">
@@ -318,7 +318,9 @@ export function TreasurerDashboard() {
                   <AlertCircle className="h-5 w-5 text-amber-600" />
                   <Badge className="bg-amber-200 text-amber-800">Action Needed</Badge>
                 </div>
-                <p className="text-2xl font-bold text-amber-900">{pendingConfirmations.length}</p>
+                <p className="text-2xl font-bold text-amber-900">
+                  {hasActiveFilters ? `${filteredPending.length} / ${pendingConfirmations.length}` : pendingConfirmations.length}
+                </p>
                 <p className="text-sm text-amber-700">Awaiting your confirmation</p>
               </div>
             </Link>
@@ -339,20 +341,117 @@ export function TreasurerDashboard() {
               <p className="text-sm text-green-700">Receipts issued</p>
             </div>
           </div>
-          {pendingConfirmations.length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm font-medium mb-2">Next payments to confirm:</p>
-              <div className="space-y-2">
-                {pendingConfirmations.slice(0, 3).map(payment => {
-                  const profile = profiles?.find(p => p.user_id === payment.user_id);
-                  return (
-                    <div key={payment.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/50">
-                      <span>{profile ? `${profile.first_name} ${profile.last_name}` : 'Unknown'} · {payment.payment_categories?.name}</span>
-                      <span className="font-semibold">KES {Number(payment.amount).toLocaleString()}</span>
-                    </div>
-                  );
-                })}
+
+          {/* Filters */}
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Filter pending payments
+              </p>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 gap-1">
+                  <X className="h-3 w-3" /> Clear
+                </Button>
+              )}
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+              <div className="space-y-1">
+                <Label htmlFor="filter-member" className="text-xs">Member name</Label>
+                <Input
+                  id="filter-member"
+                  placeholder="Search member..."
+                  value={filterMember}
+                  onChange={(e) => setFilterMember(e.target.value)}
+                  className="h-9"
+                />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="filter-receipt" className="text-xs">Receipt / Reference</Label>
+                <Input
+                  id="filter-receipt"
+                  placeholder="RCT-... or ref"
+                  value={filterReceipt}
+                  onChange={(e) => setFilterReceipt(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="filter-from" className="text-xs">From</Label>
+                <Input
+                  id="filter-from"
+                  type="date"
+                  value={filterFrom}
+                  onChange={(e) => setFilterFrom(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="filter-to" className="text-xs">To</Label>
+                <Input
+                  id="filter-to"
+                  type="date"
+                  value={filterTo}
+                  onChange={(e) => setFilterTo(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Category</Label>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {categories?.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {pendingConfirmations.length > 0 && (
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">
+                  {hasActiveFilters ? `Matching payments (${filteredPending.length})` : 'Next payments to confirm:'}
+                </p>
+              </div>
+              {filteredPending.length > 0 ? (
+                <div className="space-y-2">
+                  {filteredPending.slice(0, 8).map(payment => {
+                    const profile = profiles?.find(p => p.user_id === payment.user_id);
+                    const conf = confirmationByPaymentId.get(payment.id);
+                    return (
+                      <div key={payment.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/50">
+                        <div className="min-w-0">
+                          <div className="truncate">
+                            {profile ? `${profile.first_name} ${profile.last_name}` : 'Unknown'} · {payment.payment_categories?.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(payment.payment_date), 'PP')}
+                            {payment.reference_number ? ` · Ref ${payment.reference_number}` : ''}
+                            {conf?.receipt_number ? ` · ${conf.receipt_number}` : ''}
+                          </div>
+                        </div>
+                        <span className="font-semibold whitespace-nowrap ml-3">KES {Number(payment.amount).toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                  {filteredPending.length > 8 && (
+                    <p className="text-xs text-muted-foreground text-center pt-1">
+                      Showing 8 of {filteredPending.length}. Refine filters or open the contributions page to see all.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-3 text-center">
+                  No pending payments match your filters.
+                </p>
+              )}
               <Link to="/dashboard/contributions" className="block mt-3">
                 <Button size="sm" className="w-full">Review &amp; Confirm Payments</Button>
               </Link>
