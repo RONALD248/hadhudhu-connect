@@ -435,20 +435,18 @@ export default function Contributions() {
       )}
 
       {/* Member receipts section - visible to all authenticated users */}
+      <MemberReceipts />
       {!canViewPayments && (
-        <>
-          <MemberReceipts />
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">
-                Use the payment details above to make your contribution.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Contact the treasurer if you have questions about your payments.
-              </p>
-            </CardContent>
-          </Card>
-        </>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">
+              Use the payment details above to make your contribution.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Contact the treasurer if you have questions about your payments.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Dialogs */}
