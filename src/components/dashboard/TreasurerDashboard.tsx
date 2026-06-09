@@ -39,6 +39,13 @@ export function TreasurerDashboard() {
   const { data: pledges } = usePledges();
   const { data: confirmations } = usePaymentConfirmations();
 
+  // Filters for the verification workflow
+  const [filterMember, setFilterMember] = useState('');
+  const [filterReceipt, setFilterReceipt] = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+
   // Pending confirmations awaiting treasurer action
   const pendingTreasurerIds = new Set(
     (confirmations || [])
@@ -53,6 +60,48 @@ export function TreasurerDashboard() {
     c => c.treasurer_confirmed_at && !c.secretary_confirmed_at
   );
   const fullyVerified = (confirmations || []).filter(c => c.status === 'confirmed');
+
+  const confirmationByPaymentId = useMemo(() => {
+    const map = new Map<string, typeof confirmations[number]>();
+    (confirmations || []).forEach(c => map.set(c.payment_id, c));
+    return map;
+  }, [confirmations]);
+
+  const filteredPending = useMemo(() => {
+    const memberQ = filterMember.trim().toLowerCase();
+    const receiptQ = filterReceipt.trim().toLowerCase();
+    const from = filterFrom ? new Date(filterFrom) : null;
+    const to = filterTo ? new Date(filterTo) : null;
+    if (to) to.setHours(23, 59, 59, 999);
+
+    return pendingConfirmations.filter(p => {
+      const date = new Date(p.payment_date);
+      if (from && date < from) return false;
+      if (to && date > to) return false;
+      if (filterCategory !== 'all' && p.category_id !== filterCategory) return false;
+      if (memberQ) {
+        const profile = profiles?.find(pr => pr.user_id === p.user_id);
+        const name = profile ? `${profile.first_name} ${profile.last_name}`.toLowerCase() : '';
+        if (!name.includes(memberQ)) return false;
+      }
+      if (receiptQ) {
+        const conf = confirmationByPaymentId.get(p.id);
+        const ref = (p.reference_number || '').toLowerCase();
+        const rcpt = (conf?.receipt_number || '').toLowerCase();
+        if (!ref.includes(receiptQ) && !rcpt.includes(receiptQ)) return false;
+      }
+      return true;
+    });
+  }, [pendingConfirmations, filterMember, filterReceipt, filterFrom, filterTo, filterCategory, profiles, confirmationByPaymentId]);
+
+  const hasActiveFilters = filterMember || filterReceipt || filterFrom || filterTo || filterCategory !== 'all';
+  const clearFilters = () => {
+    setFilterMember('');
+    setFilterReceipt('');
+    setFilterFrom('');
+    setFilterTo('');
+    setFilterCategory('all');
+  };
 
 
   const now = new Date();
