@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { usePayments, usePaymentCategories, usePledges } from '@/hooks/usePayments';
 import { useProfiles } from '@/hooks/useProfiles';
+import { usePaymentConfirmations } from '@/hooks/usePaymentConfirmations';
 import { ContributionTrendChart } from '@/components/charts/ContributionTrendChart';
 import { CategoryBreakdownChart } from '@/components/charts/CategoryBreakdownChart';
 import { exportDashboardReport } from '@/lib/pdfExport';
@@ -30,6 +31,23 @@ export function TreasurerDashboard() {
   const { data: categories } = usePaymentCategories();
   const { data: profiles } = useProfiles();
   const { data: pledges } = usePledges();
+  const { data: confirmations } = usePaymentConfirmations();
+
+  // Pending confirmations awaiting treasurer action
+  const pendingTreasurerIds = new Set(
+    (confirmations || [])
+      .filter(c => !c.treasurer_confirmed_at)
+      .map(c => c.payment_id)
+  );
+  const allConfirmedPaymentIds = new Set((confirmations || []).map(c => c.payment_id));
+  const pendingConfirmations = (payments || []).filter(p =>
+    pendingTreasurerIds.has(p.id) || !allConfirmedPaymentIds.has(p.id)
+  );
+  const awaitingSecretary = (confirmations || []).filter(
+    c => c.treasurer_confirmed_at && !c.secretary_confirmed_at
+  );
+  const fullyVerified = (confirmations || []).filter(c => c.status === 'confirmed');
+
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -227,6 +245,68 @@ export function TreasurerDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Confirmation Workflow Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            Payment Verification Workflow
+          </CardTitle>
+          <CardDescription>Track confirmations from recording to receipt issuance</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Link to="/dashboard/contributions" className="block">
+              <div className="p-4 rounded-lg border bg-amber-50 hover:bg-amber-100 transition-colors">
+                <div className="flex items-center justify-between mb-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                  <Badge className="bg-amber-200 text-amber-800">Action Needed</Badge>
+                </div>
+                <p className="text-2xl font-bold text-amber-900">{pendingConfirmations.length}</p>
+                <p className="text-sm text-amber-700">Awaiting your confirmation</p>
+              </div>
+            </Link>
+            <div className="p-4 rounded-lg border bg-blue-50">
+              <div className="flex items-center justify-between mb-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <Badge className="bg-blue-200 text-blue-800">In Review</Badge>
+              </div>
+              <p className="text-2xl font-bold text-blue-900">{awaitingSecretary.length}</p>
+              <p className="text-sm text-blue-700">Awaiting secretary review</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-green-50">
+              <div className="flex items-center justify-between mb-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <Badge className="bg-green-200 text-green-800">Complete</Badge>
+              </div>
+              <p className="text-2xl font-bold text-green-900">{fullyVerified.length}</p>
+              <p className="text-sm text-green-700">Receipts issued</p>
+            </div>
+          </div>
+          {pendingConfirmations.length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm font-medium mb-2">Next payments to confirm:</p>
+              <div className="space-y-2">
+                {pendingConfirmations.slice(0, 3).map(payment => {
+                  const profile = profiles?.find(p => p.user_id === payment.user_id);
+                  return (
+                    <div key={payment.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/50">
+                      <span>{profile ? `${profile.first_name} ${profile.last_name}` : 'Unknown'} · {payment.payment_categories?.name}</span>
+                      <span className="font-semibold">KES {Number(payment.amount).toLocaleString()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <Link to="/dashboard/contributions" className="block mt-3">
+                <Button size="sm" className="w-full">Review &amp; Confirm Payments</Button>
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       {/* Pledge Progress Overview */}
       {totalPledges > 0 && (
