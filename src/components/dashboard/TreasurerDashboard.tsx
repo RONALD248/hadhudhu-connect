@@ -31,6 +31,23 @@ export function TreasurerDashboard() {
   const { data: categories } = usePaymentCategories();
   const { data: profiles } = useProfiles();
   const { data: pledges } = usePledges();
+  const { data: confirmations } = usePaymentConfirmations();
+
+  // Pending confirmations awaiting treasurer action
+  const pendingTreasurerIds = new Set(
+    (confirmations || [])
+      .filter(c => !c.treasurer_confirmed_at)
+      .map(c => c.payment_id)
+  );
+  const allConfirmedPaymentIds = new Set((confirmations || []).map(c => c.payment_id));
+  const pendingConfirmations = (payments || []).filter(p =>
+    pendingTreasurerIds.has(p.id) || !allConfirmedPaymentIds.has(p.id)
+  );
+  const awaitingSecretary = (confirmations || []).filter(
+    c => c.treasurer_confirmed_at && !c.secretary_confirmed_at
+  );
+  const fullyVerified = (confirmations || []).filter(c => c.status === 'confirmed');
+
 
   const now = new Date();
   const monthStart = startOfMonth(now);
