@@ -14,10 +14,42 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+
+    // --- Auth: require a valid JWT and a staff role ---
+    const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await authClient.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // Staff-only: treasurer, secretary, or super_admin
+    const { data: isStaff, error: staffErr } = await supabase.rpc("is_staff", { _user_id: callerId });
+    if (staffErr || !isStaff) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { payment_id } = await req.json();
-    if (!payment_id) {
+    if (!payment_id || typeof payment_id !== "string") {
       return new Response(JSON.stringify({ error: "payment_id is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
