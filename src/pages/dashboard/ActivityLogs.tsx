@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { Search, Filter, RefreshCw, Shield, Activity, FileText, Download, FileSpreadsheet, FileDown, CalendarIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const actionColors: Record<string, string> = {
