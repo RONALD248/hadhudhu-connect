@@ -429,9 +429,21 @@ export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceipt
     doc.text(formattedAmount, pageWidth - 30, yy + 14, { align: 'right' });
     yy += 32;
 
+    const colW = centerX - 30 - 10;
+    const tLines = doc.splitTextToSize(r.treasurerName, colW) as string[];
+    const sLines = doc.splitTextToSize(r.secretaryName, colW) as string[];
+    const nLines = Math.max(tLines.length, sLines.length);
+    const boxH = 9 + 9 + nLines * 5 + 8;
+
+    // Page-break before verification if it would clip into footer
+    if (yy + boxH + 4 > pageHeight - 18) {
+      doc.addPage();
+      yy = 20;
+    }
+
     doc.setFillColor(245, 247, 255);
     doc.setDrawColor(0, 68, 124);
-    doc.roundedRect(20, yy, pageWidth - 40, 36, 4, 4, 'FD');
+    doc.roundedRect(20, yy, pageWidth - 40, boxH, 4, 4, 'FD');
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 68, 124);
@@ -444,7 +456,7 @@ export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceipt
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
-    doc.text(r.treasurerName, 30, yy + 25);
+    doc.text(tLines, 30, yy + 25);
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -453,7 +465,7 @@ export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceipt
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
-    doc.text(r.secretaryName, centerX + 10, yy + 25);
+    doc.text(sLines, centerX + 10, yy + 25);
 
     // Footer
     doc.setFillColor(0, 68, 124);
