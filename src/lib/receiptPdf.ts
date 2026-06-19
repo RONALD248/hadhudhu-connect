@@ -145,52 +145,76 @@ export function generateReceiptPDF(data: ReceiptData): jsPDF {
 
   y += 40;
 
+  const pageHeight = doc.internal.pageSize.height;
+  const footerReserve = 30;
+  const verseHeight = 14;
+
+  // Wrap approver names within column width
+  const colWidth = centerX - 30 - 10;
+  const treasurerLines = doc.splitTextToSize(data.treasurerName, colWidth) as string[];
+  const secretaryLines = doc.splitTextToSize(data.secretaryName, colWidth) as string[];
+  const nameLines = Math.max(treasurerLines.length, secretaryLines.length);
+  const hasDates = Boolean(data.treasurerConfirmedAt || data.secretaryConfirmedAt);
+
+  // header(10) + role label gap(10) + name lines(5.5 each) + date(7) + bottom pad(8)
+  const verifyBoxHeight = 10 + 10 + nameLines * 5.5 + (hasDates ? 7 : 0) + 8;
+
+  // Page-break if it would clip into the footer
+  if (y + verifyBoxHeight + verseHeight + footerReserve > pageHeight) {
+    doc.addPage();
+    y = 20;
+  }
+
   // === VERIFICATION SECTION ===
   doc.setFillColor(245, 247, 255);
   doc.setDrawColor(0, 68, 124);
   doc.setLineWidth(0.3);
-  doc.roundedRect(20, y, pageWidth - 40, 42, 4, 4, 'FD');
+  doc.roundedRect(20, y, pageWidth - 40, verifyBoxHeight, 4, 4, 'FD');
 
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 68, 124);
   doc.text('Payment Verified By:', 30, y + 10);
 
+  const roleLabelY = y + 20;
+  const nameStartY = y + 27;
+  const dateY = nameStartY + nameLines * 5.5 + 2;
+
   // Treasurer
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text('Church Treasurer', 30, y + 20);
+  doc.text('Church Treasurer', 30, roleLabelY);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(30, 30, 30);
-  doc.text(data.treasurerName, 30, y + 27);
+  doc.text(treasurerLines, 30, nameStartY);
 
   if (data.treasurerConfirmedAt) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(120, 120, 120);
-    doc.text(new Date(data.treasurerConfirmedAt).toLocaleDateString(), 30, y + 34);
+    doc.text(new Date(data.treasurerConfirmedAt).toLocaleDateString(), 30, dateY);
   }
 
   // Secretary
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text('Church Secretary', centerX + 10, y + 20);
+  doc.text('Church Secretary', centerX + 10, roleLabelY);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(30, 30, 30);
-  doc.text(data.secretaryName, centerX + 10, y + 27);
+  doc.text(secretaryLines, centerX + 10, nameStartY);
 
   if (data.secretaryConfirmedAt) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(120, 120, 120);
-    doc.text(new Date(data.secretaryConfirmedAt).toLocaleDateString(), centerX + 10, y + 34);
+    doc.text(new Date(data.secretaryConfirmedAt).toLocaleDateString(), centerX + 10, dateY);
   }
 
-  y += 52;
+  y += verifyBoxHeight + 10;
 
   // === BIBLE VERSE ===
   doc.setFontSize(9);
@@ -198,21 +222,23 @@ export function generateReceiptPDF(data: ReceiptData): jsPDF {
   doc.setTextColor(100, 100, 100);
   const verse = '"Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver." — 2 Corinthians 9:7';
   const splitVerse = doc.splitTextToSize(verse, pageWidth - 40);
-  doc.text(splitVerse, centerX, y, { align: 'center' });
+  if (y + verseHeight < pageHeight - 24) {
+    doc.text(splitVerse, centerX, y, { align: 'center' });
+  }
 
   // === FOOTER ===
   doc.setFillColor(0, 68, 124);
-  doc.rect(0, doc.internal.pageSize.height - 22, pageWidth, 22, 'F');
+  doc.rect(0, pageHeight - 22, pageWidth, 22, 'F');
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(198, 146, 20);
-  doc.text('Hadhudhu Seventh-day Adventist Church', centerX, doc.internal.pageSize.height - 13, { align: 'center' });
-  
+  doc.text('Hadhudhu Seventh-day Adventist Church', centerX, pageHeight - 13, { align: 'center' });
+
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(170, 184, 204);
-  doc.text('This is an official computer-generated receipt. Keep for your records.', centerX, doc.internal.pageSize.height - 7, { align: 'center' });
+  doc.text('This is an official computer-generated receipt. Keep for your records.', centerX, pageHeight - 7, { align: 'center' });
 
   return doc;
 }
@@ -403,9 +429,21 @@ export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceipt
     doc.text(formattedAmount, pageWidth - 30, yy + 14, { align: 'right' });
     yy += 32;
 
+    const colW = centerX - 30 - 10;
+    const tLines = doc.splitTextToSize(r.treasurerName, colW) as string[];
+    const sLines = doc.splitTextToSize(r.secretaryName, colW) as string[];
+    const nLines = Math.max(tLines.length, sLines.length);
+    const boxH = 9 + 9 + nLines * 5 + 8;
+
+    // Page-break before verification if it would clip into footer
+    if (yy + boxH + 4 > pageHeight - 18) {
+      doc.addPage();
+      yy = 20;
+    }
+
     doc.setFillColor(245, 247, 255);
     doc.setDrawColor(0, 68, 124);
-    doc.roundedRect(20, yy, pageWidth - 40, 36, 4, 4, 'FD');
+    doc.roundedRect(20, yy, pageWidth - 40, boxH, 4, 4, 'FD');
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 68, 124);
@@ -418,7 +456,7 @@ export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceipt
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
-    doc.text(r.treasurerName, 30, yy + 25);
+    doc.text(tLines, 30, yy + 25);
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -427,7 +465,7 @@ export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceipt
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
-    doc.text(r.secretaryName, centerX + 10, yy + 25);
+    doc.text(sLines, centerX + 10, yy + 25);
 
     // Footer
     doc.setFillColor(0, 68, 124);
