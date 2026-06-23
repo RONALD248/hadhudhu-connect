@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { generateReceiptPDF } from "../receiptPdf";
+import { dumpArtifacts } from "./_artifacts";
 
 /**
  * Regression: the Verified By box and approver names must never overlap
@@ -94,6 +95,19 @@ function renderAndInspect(description: string, names?: { t?: string; s?: string 
         issues.push(`page ${p}: text drawn off-page at y=${yFromTop.toFixed(1)}pt`);
       }
     }
+  }
+
+  if (issues.length > 0) {
+    const testName = expect.getState().currentTestName ?? "unknown";
+    const pageHeightPt = (doc.internal.pageSize as unknown as { getHeight: () => number }).getHeight() * 2.83464567;
+    const footerTopPt = pageHeightPt - FOOTER_BAND_HEIGHT * 2.83464567;
+    dumpArtifacts(`single_${testName}`, doc, {
+      issues,
+      pageHeightPt,
+      footerTopPt,
+      testName,
+      extra: { description: description.slice(0, 200), descriptionLength: description.length, names },
+    });
   }
 
   return { doc, pageHeight, pageWidth, issues };

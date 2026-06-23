@@ -28,3 +28,12 @@ jobs:
 
       - name: Run receipt PDF regression tests
         run: bunx vitest run src/lib/__tests__/receiptPdf.regression.test.ts src/lib/__tests__/receiptPdfCombined.regression.test.ts --reporter=verbose
+
+      - name: Upload receipt PDF regression artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: receipt-pdf-regression-artifacts
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
