@@ -97,6 +97,19 @@ function renderAndInspect(description: string, names?: { t?: string; s?: string 
     }
   }
 
+  if (issues.length > 0) {
+    const testName = expect.getState().currentTestName ?? "unknown";
+    const pageHeightPt = (doc.internal.pageSize as unknown as { getHeight: () => number }).getHeight() * 2.83464567;
+    const footerTopPt = pageHeightPt - FOOTER_BAND_HEIGHT * 2.83464567;
+    dumpArtifacts(`single_${testName}`, doc, {
+      issues,
+      pageHeightPt,
+      footerTopPt,
+      testName,
+      extra: { description: description.slice(0, 200), descriptionLength: description.length, names },
+    });
+  }
+
   return { doc, pageHeight, pageWidth, issues };
 }
 
