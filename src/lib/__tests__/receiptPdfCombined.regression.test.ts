@@ -62,6 +62,18 @@ function inspect(memberName: string, receipts: ReturnType<typeof makeReceipt>[])
       }
     }
   }
+
+  if (issues.length > 0) {
+    const testName = expect.getState().currentTestName ?? "unknown";
+    dumpArtifacts(`combined_${testName}`, doc, {
+      issues,
+      pageHeightPt,
+      footerTopPt,
+      testName,
+      extra: { memberName, receiptCount: receipts.length },
+    });
+  }
+
   return { doc, issues };
 }
 
