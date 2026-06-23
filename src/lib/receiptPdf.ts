@@ -253,8 +253,8 @@ interface CombinedReceiptsData {
   receipts: ReceiptData[];
 }
 
-export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceiptsData) {
-  if (receipts.length === 0) return;
+export function buildAllReceiptsPDF({ memberName, receipts }: CombinedReceiptsData): jsPDF | null {
+  if (receipts.length === 0) return null;
 
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
@@ -481,6 +481,13 @@ export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceipt
     );
   });
 
-  const safeName = memberName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  return doc;
+}
+
+export function downloadAllReceiptsPDF(data: CombinedReceiptsData) {
+  const doc = buildAllReceiptsPDF(data);
+  if (!doc) return;
+  const safeName = data.memberName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   doc.save(`all-receipts-${safeName}-${new Date().toISOString().split('T')[0]}.pdf`);
 }
+
