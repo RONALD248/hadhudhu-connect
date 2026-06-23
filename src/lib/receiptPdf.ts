@@ -253,8 +253,8 @@ interface CombinedReceiptsData {
   receipts: ReceiptData[];
 }
 
-export function downloadAllReceiptsPDF({ memberName, receipts }: CombinedReceiptsData) {
-  if (receipts.length === 0) return;
+export function buildAllReceiptsPDF({ memberName, receipts }: CombinedReceiptsData): jsPDF | null {
+  if (receipts.length === 0) return null;
 
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
