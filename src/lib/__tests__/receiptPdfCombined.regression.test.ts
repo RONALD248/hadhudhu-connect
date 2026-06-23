@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildAllReceiptsPDF } from "../receiptPdf";
+import { dumpArtifacts } from "./_artifacts";
 
 /**
  * Regression: in combined "all receipts" PDFs, the Verified By box and
