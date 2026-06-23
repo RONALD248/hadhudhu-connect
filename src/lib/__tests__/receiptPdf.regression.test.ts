@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { generateReceiptPDF } from "../receiptPdf";
+import { dumpArtifacts } from "./_artifacts";
 
 /**
  * Regression: the Verified By box and approver names must never overlap
