@@ -5,13 +5,15 @@ import { PastorDashboard } from '@/components/dashboard/PastorDashboard';
 import { ElderDashboard } from '@/components/dashboard/ElderDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  Wallet, 
-  TrendingUp, 
+import { useProfiles } from '@/hooks/useProfiles';
+import { usePayments, usePledges } from '@/hooks/usePayments';
+import { startOfMonth, startOfYear, format } from 'date-fns';
+import {
+  Users,
+  Wallet,
+  TrendingUp,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight,
   Plus,
   FileText,
 } from 'lucide-react';
@@ -69,36 +71,58 @@ export default function Dashboard() {
 
 // Admin Dashboard - full access to everything
 function AdminDashboard() {
+  const { data: profiles, isLoading: profilesLoading } = useProfiles();
+  const { data: payments, isLoading: paymentsLoading } = usePayments();
+  const { data: pledges, isLoading: pledgesLoading } = usePledges();
+
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const yearStart = startOfYear(now);
+
+  const totalMembers = profiles?.length || 0;
+  const activeMembers = profiles?.filter((p) => p.is_active).length || 0;
+
+  const monthlyPayments = payments?.filter((p) => new Date(p.payment_date) >= monthStart) || [];
+  const yearlyPayments = payments?.filter((p) => new Date(p.payment_date) >= yearStart) || [];
+  const monthlyTotal = monthlyPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const yearlyTotal = yearlyPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  const pendingPledges = pledges?.filter((p) => p.status !== 'fulfilled' && p.status !== 'cancelled') || [];
+  const pendingPledgeTotal = pendingPledges.reduce(
+    (sum, p) => sum + Math.max(Number(p.amount) - Number(p.fulfilled_amount || 0), 0),
+    0
+  );
+
+  const recentPayments = (payments || []).slice(0, 5);
+
+  const fmt = (n: number) => `KES ${n.toLocaleString()}`;
+
   const stats = [
     {
       title: 'Total Members',
-      value: '--',
-      change: 'View',
-      changeType: 'neutral',
+      value: profilesLoading ? '...' : totalMembers.toString(),
+      change: `${activeMembers} active`,
       icon: Users,
       href: '/dashboard/members',
     },
     {
       title: 'Monthly Contributions',
-      value: '--',
-      change: 'View',
-      changeType: 'neutral',
+      value: paymentsLoading ? '...' : fmt(monthlyTotal),
+      change: `${monthlyPayments.length} this month`,
       icon: Wallet,
       href: '/dashboard/contributions',
     },
     {
       title: 'YTD Collections',
-      value: '--',
-      change: 'View',
-      changeType: 'neutral',
+      value: paymentsLoading ? '...' : fmt(yearlyTotal),
+      change: `${yearlyPayments.length} payments`,
       icon: TrendingUp,
       href: '/dashboard/reports',
     },
     {
       title: 'Pending Pledges',
-      value: '--',
-      change: 'View',
-      changeType: 'neutral',
+      value: pledgesLoading ? '...' : pendingPledges.length.toString(),
+      change: fmt(pendingPledgeTotal),
       icon: Calendar,
       href: '/dashboard/contributions',
     },
@@ -134,14 +158,8 @@ function AdminDashboard() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                     <stat.icon className="h-6 w-6 text-primary" />
                   </div>
-                  <div className={`flex items-center gap-1 text-sm font-medium ${
-                    stat.changeType === 'positive' ? 'text-success' : stat.changeType === 'negative' ? 'text-destructive' : 'text-primary'
-                  }`}>
-                    {stat.changeType === 'positive' ? (
-                      <ArrowUpRight className="h-4 w-4" />
-                    ) : stat.changeType === 'negative' ? (
-                      <ArrowDownRight className="h-4 w-4" />
-                    ) : null}
+                  <div className="flex items-center gap-1 text-sm font-medium text-primary">
+                    <ArrowUpRight className="h-4 w-4" />
                     {stat.change}
                   </div>
                 </div>
@@ -168,15 +186,35 @@ function AdminDashboard() {
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
-                <Wallet className="h-6 w-6 text-primary" />
+            {recentPayments.length > 0 ? (
+              <div className="space-y-3">
+                {recentPayments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">
+                        {p.profiles ? `${p.profiles.first_name} ${p.profiles.last_name}` : 'Member'}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {p.payment_categories?.name || 'Contribution'} • {format(new Date(p.payment_date), 'PP')}
+                      </p>
+                    </div>
+                    <span className="font-semibold text-foreground whitespace-nowrap ml-3">
+                      {fmt(Number(p.amount))}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <p className="text-muted-foreground">No contributions recorded yet</p>
-              <Link to="/dashboard/contributions" className="mt-4">
-                <Button size="sm">Record First Contribution</Button>
-              </Link>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+                  <Wallet className="h-6 w-6 text-primary" />
+                </div>
+                <p className="text-muted-foreground">No contributions recorded yet</p>
+                <Link to="/dashboard/contributions" className="mt-4">
+                  <Button size="sm">Record First Contribution</Button>
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
 
