@@ -217,6 +217,44 @@ function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+
+        <Card className="animate-slide-up" style={{ animationDelay: '0.5s' }}>
+          <CardHeader>
+            <CardTitle className="text-lg">Quick Links</CardTitle>
+            <CardDescription>Navigate to key areas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Link to="/dashboard/members" className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">Member Registration</p>
+                  <p className="text-sm text-muted-foreground">Add new church members</p>
+                </div>
+              </Link>
+              <Link to="/dashboard/contributions" className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Wallet className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">Payment Recording</p>
+                  <p className="text-sm text-muted-foreground">Record contributions</p>
+                </div>
+              </Link>
+              <Link to="/dashboard/users" className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">User Management</p>
+                  <p className="text-sm text-muted-foreground">Manage system users</p>
+                </div>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </>
   );
