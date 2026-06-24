@@ -5,13 +5,15 @@ import { PastorDashboard } from '@/components/dashboard/PastorDashboard';
 import { ElderDashboard } from '@/components/dashboard/ElderDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  Wallet, 
-  TrendingUp, 
+import { useProfiles } from '@/hooks/useProfiles';
+import { usePayments, usePledges } from '@/hooks/usePayments';
+import { startOfMonth, startOfYear, format } from 'date-fns';
+import {
+  Users,
+  Wallet,
+  TrendingUp,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight,
   Plus,
   FileText,
 } from 'lucide-react';
